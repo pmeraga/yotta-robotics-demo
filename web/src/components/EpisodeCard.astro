@@ -1,0 +1,103 @@
+---
+interface Phase {
+  label: string;
+  frames: number;
+  kept_frames: number;
+}
+
+interface Episode {
+  index: number;
+  total_frames: number;
+  kept_frames: number;
+  percent_reduced: number;
+  duration_sec: number;
+  kept_duration_sec: number;
+  attempts: number;
+  recoveries: number;
+  idle_tail_frames: number;
+  phases: Phase[];
+  findings: string[];
+}
+
+interface Props {
+  episode: Episode;
+}
+
+const { episode } = Astro.props;
+
+const palette = [
+  "bg-sky-400",
+  "bg-amber-500",
+  "bg-emerald-500",
+  "bg-violet-400",
+  "bg-pink-400",
+  "bg-slate-500",
+];
+
+const uniqueLabels = [...new Set(episode.phases.map((p) => p.label))];
+const colorFor = (label: string) => palette[uniqueLabels.indexOf(label) % palette.length];
+---
+
+<article class="overflow-hidden rounded-2xl border border-line bg-surface/40">
+  <div class="border-b border-line/70 px-5 py-4">
+    <div class="flex flex-wrap items-baseline justify-between gap-3">
+      <h3 class="text-base font-semibold text-ink">Episode {episode.index}</h3>
+      <span class="rounded-full bg-kept/15 px-2.5 py-0.5 text-xs font-medium text-kept">
+        {episode.percent_reduced}% removed
+      </span>
+    </div>
+    <p class="mt-1 text-[13px] text-muted">
+      {episode.total_frames} frames → {episode.kept_frames} kept ·{" "}
+      {episode.duration_sec}s → {episode.kept_duration_sec}s
+    </p>
+  </div>
+
+  <video
+    class="aspect-video w-full bg-black"
+    src={`/assets/video/annotated_ep${episode.index}.mp4`}
+    controls
+    muted
+    loop
+    playsinline
+    preload="metadata"></video>
+
+  <div class="px-5 py-4">
+    <div class="flex h-2 w-full overflow-hidden rounded-full bg-panel">
+      {
+        episode.phases.map((phase) => (
+          <div
+            class={colorFor(phase.label)}
+            style={`width:${(phase.frames / episode.total_frames) * 100}%`}
+            title={`${phase.label}: ${phase.frames} frames, ${phase.kept_frames} kept`}
+          />
+        ))
+      }
+    </div>
+
+    <dl class="mt-4 grid grid-cols-3 gap-3 text-center">
+      <div class="rounded-lg bg-panel/60 py-2">
+        <dt class="text-[11px] uppercase tracking-wide text-muted">Attempts</dt>
+        <dd class="text-lg font-semibold text-ink">{episode.attempts}</dd>
+      </div>
+      <div class="rounded-lg bg-panel/60 py-2">
+        <dt class="text-[11px] uppercase tracking-wide text-muted">Recoveries</dt>
+        <dd class="text-lg font-semibold text-ink">{episode.recoveries}</dd>
+      </div>
+      <div class="rounded-lg bg-panel/60 py-2">
+        <dt class="text-[11px] uppercase tracking-wide text-muted">Idle tail</dt>
+        <dd class="text-lg font-semibold text-ink">{episode.idle_tail_frames}f</dd>
+      </div>
+    </dl>
+
+    <ul class="mt-4 space-y-2">
+      {
+        episode.findings.map((finding) => (
+          <li class="flex gap-2 text-[13px] leading-snug text-muted">
+            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-dropped" />
+            <span>{finding}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</article>

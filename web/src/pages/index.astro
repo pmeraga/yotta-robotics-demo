@@ -1,0 +1,223 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Section from "../components/Section.astro";
+import Stat from "../components/Stat.astro";
+import EpisodeCard from "../components/EpisodeCard.astro";
+import UploadPanel from "../components/UploadPanel.astro";
+import stats from "../../../data/stats.json";
+
+const { dataset, episodes, totals, throughput } = stats;
+const headline = totals.policies.include_recovery;
+const successOnly = totals.policies.success_only;
+const dedupOnly = totals.policies.dedup_only;
+const label = episodes[0].original_label;
+const endToEnd = throughput.stages.find((s) => s.label === "End to end (fast visual)")!.fps;
+const idleTail = episodes.reduce((sum, e) => sum + e.idle_tail_frames, 0);
+---
+
+<BaseLayout
+  title="Yotta Robotics — curation infrastructure for robot training data"
+  description="Robot episodes are labelled as clean demonstrations but contain failures, recoveries, and dead time. Yotta reconstructs what actually happened and cuts the dataset down to what is worth training on."
+>
+  <section class="relative overflow-hidden border-b border-line/70">
+    <div
+      class="pointer-events-none absolute inset-x-0 -top-40 h-80 bg-[radial-gradient(60%_100%_at_50%_100%,rgba(56,189,248,0.16),transparent)]"
+    >
+    </div>
+    <div class="relative mx-auto max-w-6xl px-6 pb-16 pt-16 sm:pb-20 sm:pt-24">
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+        Data curation for robotics foundation models
+      </p>
+      <h1 class="mt-4 max-w-4xl text-4xl font-semibold leading-[1.1] tracking-tight text-ink sm:text-5xl">
+        Your robot data says one thing.{" "}
+        <span class="text-muted">The footage says another.</span>
+      </h1>
+      <p class="mt-5 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
+        Every episode in this dataset is labelled{" "}
+        <span class="text-ink">“{label}”</span>. Not one of them is a clean run. All{" "}
+        {totals.episodes} contain a failure and a recovery the label never mentions, and all{" "}
+        {totals.episodes} keep recording after the task is already finished. We find that
+        structure automatically, fix the labels, and cut the dataset down to what is worth
+        training on.
+      </p>
+
+      <div class="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Stat value={`${totals.episodes_with_hidden_failures}/${totals.episodes}`} label="Episodes whose label hid a failure" tone="warn" />
+        <Stat value={`${headline.percent_reduced}%`} label="Frames removed, full task arc kept" tone="accent" />
+        <Stat value={`${successOnly.percent_reduced}%`} label="Removed when only success matters" />
+        <Stat value={`${endToEnd} fps`} label="End to end on a laptop CPU" />
+      </div>
+
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a
+          href="#try"
+          class="rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-panel transition hover:bg-accent/90"
+        >
+          Run it on your own clip
+        </a>
+        <a
+          href="#results"
+          class="rounded-lg border border-line px-4 py-2.5 text-sm font-medium text-muted transition hover:border-accent/50 hover:text-ink"
+        >
+          See the results
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <Section
+    eyebrow="The problem"
+    title="One label, stretched over everything that happened"
+    lede="Robot datasets are recorded at a fixed camera rate but carry information at a much lower one. The labels make it worse: a single task string is stamped across an entire episode, so a model trained on it learns that flailing, dropping the part, and sitting still afterwards are all equally good examples of doing the task."
+  >
+    <div class="grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-center">
+      <img
+        src="/assets/charts/phase_composition.png"
+        alt="Stacked bars showing each episode broken into attempts, recoveries, a successful attempt, and an idle tail"
+        class="w-full rounded-xl border border-line"
+        loading="lazy"
+      />
+      <div class="space-y-4">
+        <div class="rounded-xl border border-dropped/25 bg-dropped/5 px-5 py-4">
+          <p class="text-[13px] font-medium uppercase tracking-wide text-dropped">What the label says</p>
+          <p class="mt-1.5 text-[15px] text-ink">“{label}”</p>
+          <p class="mt-1 text-[13px] text-muted">Applied to all {episodes[0].total_frames} frames of episode 0.</p>
+        </div>
+        <div class="rounded-xl border border-kept/25 bg-kept/5 px-5 py-4">
+          <p class="text-[13px] font-medium uppercase tracking-wide text-kept">What actually happened</p>
+          <ul class="mt-2 space-y-1.5 text-[14px] leading-snug text-muted">
+            <li>An attempt that fails and has to be recovered from.</li>
+            <li>A second attempt that also fails.</li>
+            <li>A third attempt that finally succeeds.</li>
+            <li>{idleTail} frames across the three episodes recorded after the task was already done.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </Section>
+
+  <Section
+    id="results"
+    eyebrow="Results"
+    title={`${totals.total_frames} frames, three episodes, every decision auditable`}
+    lede="Each clip below is the original footage with the pipeline's verdict drawn on every frame. Green means the frame survives into the training set, red means it was removed. The strip along the bottom fills in as the episode plays."
+  >
+    <div class="grid gap-6 lg:grid-cols-3">
+      {episodes.map((episode) => <EpisodeCard episode={episode} />)}
+    </div>
+
+    <div class="mt-10 grid gap-6 lg:grid-cols-2">
+      <img
+        src="/assets/charts/kept_vs_dropped.png"
+        alt="Stacked bar chart of frames kept versus removed for each episode"
+        class="w-full rounded-xl border border-line"
+        loading="lazy"
+      />
+      <img
+        src="/assets/charts/throughput.png"
+        alt="Bar chart of pipeline throughput in frames per second by stage"
+        class="w-full rounded-xl border border-line"
+        loading="lazy"
+      />
+    </div>
+
+    <p class="mt-6 text-[14px] leading-relaxed text-muted">
+      The whole {dataset.total_frames.toLocaleString()}-frame dataset processes in about{" "}
+      {Math.round(throughput.full_dataset_sec / 60)} minutes single-threaded ({throughput.hardware}).
+      Swapping the fast visual embedding for a foundation
+      model raises quality and costs roughly an order of magnitude in speed, which is the right
+      trade on a GPU and the wrong one on a laptop.
+    </p>
+  </Section>
+
+  <Section
+    id="policies"
+    eyebrow="Policies"
+    title="The same episode, cut three ways"
+    lede="Curation is not one number. What counts as redundant depends on what the data is for, so the goal is an input rather than something baked into the algorithm."
+  >
+    <div class="grid gap-8 lg:grid-cols-[1fr_1fr] lg:items-center">
+      <img
+        src="/assets/charts/policy_comparison.png"
+        alt="Grouped bar chart comparing frames kept under three curation policies"
+        class="w-full rounded-xl border border-line"
+        loading="lazy"
+      />
+      <div class="space-y-3">
+        {
+          [
+            {
+              name: dedupOnly.label,
+              kept: dedupOnly.kept_frames,
+              pct: dedupOnly.percent_reduced,
+              body: "Remove only what is visually redundant. Nothing about the task structure changes, so this is the safe default when a team is not sure yet what it wants.",
+            },
+            {
+              name: headline.label,
+              kept: headline.kept_frames,
+              pct: headline.percent_reduced,
+              body: "Keep the failures and recoveries, because a policy that has never seen a robot drop something cannot learn to pick it back up. The dead time after success still goes.",
+            },
+            {
+              name: successOnly.label,
+              kept: successOnly.kept_frames,
+              pct: successOnly.percent_reduced,
+              body: "Keep only the attempt that worked. This is the aggressive cut for imitation learning on clean demonstrations, and it is where most of the storage savings live.",
+            },
+          ].map((policy) => (
+            <div class="rounded-xl border border-line bg-surface/40 px-5 py-4">
+              <div class="flex flex-wrap items-baseline justify-between gap-2">
+                <h3 class="text-[15px] font-semibold text-ink">{policy.name}</h3>
+                <span class="font-mono text-[13px] text-accent">
+                  {policy.kept} frames · −{policy.pct}%
+                </span>
+              </div>
+              <p class="mt-1.5 text-[14px] leading-relaxed text-muted">{policy.body}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </Section>
+
+  <Section
+    id="try"
+    eyebrow="Live demo"
+    title="Run the pipeline on your own clip"
+    lede="Upload a short robot episode and watch it get taken apart: failure and recovery detection, proposed phase labels, and a curated cut you can play back against the original. Nothing is stored — uploads and results are deleted an hour after processing."
+  >
+    <UploadPanel />
+  </Section>
+
+  <Section
+    eyebrow="How it fits together"
+    title="Nine stages, adopted one at a time"
+    lede="Teams rarely want the whole pipeline on day one. Each stage writes a sidecar next to the untouched recording, so any one of them can be adopted alone and audited independently."
+  >
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        [
+          ["Ingest and normalize", "Pull datasets from Hugging Face and convert trajectories plus camera video into a single reviewable timeline."],
+          ["Label scaffolding", "Generate and validate time-ranged annotation templates beside recordings that are never modified."],
+          ["Action-state inference", "Open-vocabulary metadata over frame windows, from a local vision model or a dependency-free heuristic."],
+          ["Geometry enrichment", "Depth, surface normal, and segmentation sidecars from a pluggable vision provider."],
+          ["Quality assessment", "Score clips against blessed exemplars using dense retrieval, lexical search, defect gates, and trajectory matching."],
+          ["Frame curation", "The core engine: visual drift keyframing fused with kinematic signals so real motion is never mistaken for redundancy."],
+          ["Failure detection", "Find dropped objects, re-grasps, backtracks, and post-success idle inside a single episode without per-frame labels."],
+          ["Annotation QA", "Cross-check existing labels against the footage, flag the ones that lie, and propose corrected phase labels."],
+          ["Training handoff", "Pruned datasets, curated video, and annotation sidecars with verified-lossless state and action round-trip."],
+        ].map(([name, body], i) => (
+          <div class="rounded-xl border border-line bg-surface/40 px-5 py-4">
+            <div class="flex items-center gap-2.5">
+              <span class="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-accent/12 font-mono text-[11px] text-accent">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <h3 class="text-[14px] font-semibold text-ink">{name}</h3>
+            </div>
+            <p class="mt-2 text-[13px] leading-relaxed text-muted">{body}</p>
+          </div>
+        ))
+      }
+    </div>
+  </Section>
+</BaseLayout>

@@ -1,0 +1,20 @@
+---
+interface Props {
+  value: string;
+  label: string;
+  tone?: "default" | "accent" | "warn";
+}
+
+const { value, label, tone = "default" } = Astro.props;
+
+const toneClass = {
+  default: "text-ink",
+  accent: "text-accent",
+  warn: "text-dropped",
+}[tone];
+---
+
+<div class="rounded-xl border border-line bg-surface/40 px-5 py-4">
+  <div class={`text-2xl font-semibold tracking-tight sm:text-3xl ${toneClass}`}>{value}</div>
+  <div class="mt-1 text-[13px] leading-snug text-muted">{label}</div>
+</div>

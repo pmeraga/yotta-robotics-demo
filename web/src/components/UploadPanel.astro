@@ -1,0 +1,333 @@
+---
+const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? "";
+const maxMb = 50;
+const maxSeconds = 45;
+---
+
+<div class="rounded-2xl border border-line bg-surface/40 p-6 sm:p-8" data-api-base={apiBase}>
+  <div id="upload-idle">
+    <label
+      id="dropzone"
+      for="file-input"
+      class="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-line px-6 py-12 text-center transition hover:border-accent/60 hover:bg-accent/5"
+    >
+      <svg
+        class="h-9 w-9 text-muted"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M12 16.5V9m0 0L8.25 12.75M12 9l3.75 3.75M3 16.5v1.875A2.625 2.625 0 005.625 21h12.75A2.625 2.625 0 0021 18.375V16.5"
+        ></path>
+      </svg>
+      <p class="mt-3 text-[15px] font-medium text-ink">Drop a robot episode here</p>
+      <p class="mt-1 text-[13px] text-muted">
+        MP4 or MOV, up to {maxMb} MB and {maxSeconds} seconds
+      </p>
+      <input id="file-input" type="file" accept="video/mp4,video/quicktime,.mp4,.mov,.m4v" class="sr-only" />
+    </label>
+    <p id="upload-error" class="mt-3 hidden text-[13px] text-dropped"></p>
+    {
+      !apiBase && (
+        <p class="mt-4 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3.5 py-2.5 text-[13px] text-amber-200/90">
+          This build has no API endpoint configured, so uploads are disabled. The published
+          results below were produced by the same pipeline.
+        </p>
+      )
+    }
+  </div>
+
+  <div id="upload-running" class="hidden">
+    <div class="flex items-center justify-between gap-4">
+      <p id="run-step" class="text-[15px] font-medium text-ink">Uploading</p>
+      <p id="run-elapsed" class="font-mono text-[13px] text-muted">0.0s</p>
+    </div>
+    <div class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-panel">
+      <div id="run-bar" class="h-full w-0 rounded-full bg-accent transition-all duration-500"></div>
+    </div>
+    <ol id="run-steps" class="mt-5 space-y-2 text-[13px] text-muted"></ol>
+  </div>
+
+  <div id="upload-done" class="hidden">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <p class="text-[15px] font-semibold text-ink">Curation complete</p>
+        <p id="done-headline" class="mt-0.5 text-[13px] text-muted"></p>
+      </div>
+      <button
+        id="reset-button"
+        class="rounded-lg border border-line px-3.5 py-1.5 text-[13px] text-muted transition hover:border-accent/50 hover:text-ink"
+      >
+        Try another clip
+      </button>
+    </div>
+
+    <div id="done-stats" class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4"></div>
+
+    <div class="mt-6 grid gap-5 lg:grid-cols-2">
+      <figure>
+        <figcaption class="mb-2 text-[13px] font-medium text-muted">
+          Every frame, with the verdict
+        </figcaption>
+        <video id="video-annotated" class="aspect-video w-full rounded-xl bg-black" controls muted playsinline
+        ></video>
+      </figure>
+      <figure>
+        <figcaption class="mb-2 text-[13px] font-medium text-muted">
+          What survives curation
+        </figcaption>
+        <video id="video-curated" class="aspect-video w-full rounded-xl bg-black" controls muted loop playsinline
+        ></video>
+      </figure>
+    </div>
+
+    <div id="done-phases" class="mt-6"></div>
+    <div id="done-events" class="mt-6 space-y-2"></div>
+    <div id="done-notes" class="mt-6 space-y-2"></div>
+  </div>
+</div>
+
+<script>
+  const root = document.querySelector<HTMLElement>("[data-api-base]");
+  if (root) {
+    const apiBase = (root.dataset.apiBase ?? "").replace(/\/$/, "");
+    const MAX_BYTES = 50 * 1024 * 1024;
+    const MAX_SECONDS = 45;
+
+    const idle = document.getElementById("upload-idle")!;
+    const running = document.getElementById("upload-running")!;
+    const done = document.getElementById("upload-done")!;
+    const dropzone = document.getElementById("dropzone")!;
+    const input = document.getElementById("file-input") as HTMLInputElement;
+    const errorEl = document.getElementById("upload-error")!;
+    const stepEl = document.getElementById("run-step")!;
+    const barEl = document.getElementById("run-bar")!;
+    const elapsedEl = document.getElementById("run-elapsed")!;
+    const stepsEl = document.getElementById("run-steps")!;
+
+    let timer: number | undefined;
+    let poller: number | undefined;
+
+    const show = (panel: HTMLElement) => {
+      for (const el of [idle, running, done]) el.classList.toggle("hidden", el !== panel);
+    };
+
+    const fail = (message: string) => {
+      errorEl.textContent = message;
+      errorEl.classList.remove("hidden");
+      show(idle);
+      window.clearInterval(timer);
+      window.clearTimeout(poller);
+    };
+
+    const probeDuration = (file: File) =>
+      new Promise<number>((resolve) => {
+        const video = document.createElement("video");
+        video.preload = "metadata";
+        video.onloadedmetadata = () => {
+          URL.revokeObjectURL(video.src);
+          resolve(video.duration || 0);
+        };
+        video.onerror = () => resolve(0);
+        video.src = URL.createObjectURL(file);
+      });
+
+    const renderSteps = (current: string) => {
+      const seen = [...stepsEl.querySelectorAll("li")].map((li) => li.dataset.step);
+      if (seen.includes(current)) return;
+      const li = document.createElement("li");
+      li.dataset.step = current;
+      li.className = "flex items-center gap-2";
+      li.innerHTML = `<span class="h-1.5 w-1.5 rounded-full bg-accent"></span><span>${current}</span>`;
+      stepsEl.appendChild(li);
+    };
+
+    const renderResult = (result: any) => {
+      const s = result.summary;
+      document.getElementById("done-headline")!.textContent =
+        `${s.total_frames} frames in, ${s.kept_frames} kept — ${s.percent_reduced}% removed in ${s.elapsed_sec}s`;
+
+      const stats = [
+        [`${s.percent_reduced}%`, "Removed", "text-kept"],
+        [`${s.kept_frames}`, "Frames kept", "text-ink"],
+        [`${s.events.length}`, "Moments found", "text-accent"],
+        [`${s.frames_per_sec}`, "Frames / sec", "text-ink"],
+      ];
+      document.getElementById("done-stats")!.innerHTML = stats
+        .map(
+          ([value, label, tone]) => `
+          <div class="rounded-xl border border-line bg-panel/50 px-4 py-3">
+            <div class="text-xl font-semibold ${tone}">${value}</div>
+            <div class="mt-0.5 text-[12px] text-muted">${label}</div>
+          </div>`
+        )
+        .join("");
+
+      const colors = [
+        "bg-sky-400",
+        "bg-amber-500",
+        "bg-emerald-500",
+        "bg-violet-400",
+        "bg-pink-400",
+        "bg-slate-500",
+      ];
+      const labels = [...new Set(s.phases.map((p: any) => p.label))];
+      const phases = document.getElementById("done-phases")!;
+      if (s.phases.length) {
+        phases.innerHTML = `
+          <p class="mb-2 text-[13px] font-medium text-muted">What the episode actually contains</p>
+          <div class="flex h-2.5 w-full overflow-hidden rounded-full bg-panel">
+            ${s.phases
+              .map(
+                (p: any) =>
+                  `<div class="${colors[labels.indexOf(p.label) % colors.length]}" style="width:${
+                    (p.frames / s.total_frames) * 100
+                  }%" title="${p.label}: ${p.frames} frames, ${p.kept_frames} kept"></div>`
+              )
+              .join("")}
+          </div>
+          <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+            ${labels
+              .map(
+                (label: any) =>
+                  `<span class="flex items-center gap-1.5 text-[12px] text-muted"><span class="h-2 w-2 rounded-sm ${
+                    colors[labels.indexOf(label) % colors.length]
+                  }"></span>${label}</span>`
+              )
+              .join("")}
+          </div>`;
+      } else {
+        phases.innerHTML = "";
+      }
+
+      document.getElementById("done-events")!.innerHTML = s.events
+        .map(
+          (e: any) => `
+          <div class="flex gap-3 rounded-lg border border-line bg-panel/50 px-4 py-3">
+            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-dropped"></span>
+            <div>
+              <p class="text-[13px] font-medium text-ink">${e.label}
+                <span class="ml-1 font-mono text-[12px] font-normal text-muted">${e.start_sec}s – ${e.end_sec}s</span>
+              </p>
+              <p class="mt-0.5 text-[13px] leading-snug text-muted">${e.description}</p>
+            </div>
+          </div>`
+        )
+        .join("");
+
+      document.getElementById("done-notes")!.innerHTML = s.notes
+        .map(
+          (note: string) =>
+            `<p class="rounded-lg border border-line/60 bg-panel/40 px-4 py-2.5 text-[13px] leading-relaxed text-muted">${note}</p>`
+        )
+        .join("");
+
+      (document.getElementById("video-annotated") as HTMLVideoElement).src =
+        apiBase + result.video.annotated;
+      (document.getElementById("video-curated") as HTMLVideoElement).src =
+        apiBase + result.video.curated;
+
+      show(done);
+    };
+
+    const poll = async (jobId: string) => {
+      try {
+        const res = await fetch(`${apiBase}/api/jobs/${jobId}`);
+        if (!res.ok) throw new Error("lost");
+        const status = await res.json();
+
+        stepEl.textContent = status.step;
+        barEl.style.width = `${Math.max(6, status.progress * 100)}%`;
+        renderSteps(status.step);
+
+        if (status.status === "error") {
+          fail(status.error || "Processing failed. Please try a different clip.");
+          return;
+        }
+        if (status.status === "done") {
+          window.clearInterval(timer);
+          const result = await (await fetch(`${apiBase}/api/jobs/${jobId}/result`)).json();
+          renderResult(result);
+          return;
+        }
+        poller = window.setTimeout(() => poll(jobId), 1000);
+      } catch {
+        fail("Lost contact with the server. Please try again.");
+      }
+    };
+
+    const handle = async (file: File) => {
+      errorEl.classList.add("hidden");
+
+      if (!apiBase) {
+        fail("Uploads are disabled in this build.");
+        return;
+      }
+      if (file.size > MAX_BYTES) {
+        fail(`That file is ${(file.size / 1024 / 1024).toFixed(0)} MB. The limit is 50 MB.`);
+        return;
+      }
+      const duration = await probeDuration(file);
+      if (duration > MAX_SECONDS) {
+        fail(`That clip is ${duration.toFixed(0)}s. The limit is ${MAX_SECONDS}s.`);
+        return;
+      }
+
+      stepsEl.innerHTML = "";
+      barEl.style.width = "4%";
+      stepEl.textContent = "Uploading";
+      show(running);
+
+      const started = performance.now();
+      timer = window.setInterval(() => {
+        elapsedEl.textContent = `${((performance.now() - started) / 1000).toFixed(1)}s`;
+      }, 100);
+
+      const body = new FormData();
+      body.append("file", file);
+      try {
+        const res = await fetch(`${apiBase}/api/jobs`, { method: "POST", body });
+        if (!res.ok) {
+          const detail = await res.json().catch(() => ({}));
+          fail(detail.detail || "The server rejected that upload.");
+          return;
+        }
+        const job = await res.json();
+        poll(job.id);
+      } catch {
+        fail("Could not reach the server. Please try again.");
+      }
+    };
+
+    input.addEventListener("change", () => {
+      if (input.files?.[0]) handle(input.files[0]);
+    });
+
+    for (const type of ["dragenter", "dragover"]) {
+      dropzone.addEventListener(type, (event) => {
+        event.preventDefault();
+        dropzone.classList.add("border-accent/60", "bg-accent/5");
+      });
+    }
+    for (const type of ["dragleave", "drop"]) {
+      dropzone.addEventListener(type, (event) => {
+        event.preventDefault();
+        dropzone.classList.remove("border-accent/60", "bg-accent/5");
+      });
+    }
+    dropzone.addEventListener("drop", (event) => {
+      const file = (event as DragEvent).dataTransfer?.files?.[0];
+      if (file) handle(file);
+    });
+
+    document.getElementById("reset-button")!.addEventListener("click", () => {
+      input.value = "";
+      show(idle);
+    });
+  }
+</script>

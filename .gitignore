@@ -1,0 +1,34 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node / Astro
+node_modules/
+dist/
+.astro/
+.vercel/
+.npm-cache/
+
+# Mirrored at build time by web/scripts/sync-assets.mjs from the repo-root originals.
+web/public/assets/
+web/public/data/
+
+# Runtime
+uploads/
+jobs/
+build/
+*.log
+.env
+.env.*
+!**/.env.example
+
+# Frame dumps: pipeline PNG output is hundreds of megabytes and is never committed.
+# Published video and charts under assets/ are checked in deliberately.
+*.png
+!assets/charts/*.png
+!assets/timeline/*.png
+
+.DS_Store

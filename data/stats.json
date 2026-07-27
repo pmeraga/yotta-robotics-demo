@@ -1,0 +1,280 @@
+{
+  "generated_at": "2026-07-27",
+  "dataset": {
+    "name": "LeRobot worldwide hackathon \u2014 Quarter Brain lego picking",
+    "url": "https://huggingface.co/datasets/LeRobot-worldwide-hackathon/320-Quarter_Brain-lego_picking",
+    "camera": "side",
+    "fps": 30,
+    "total_episodes": 46,
+    "total_frames": 23041,
+    "episodes_processed": [
+      0,
+      1,
+      2
+    ]
+  },
+  "episodes": [
+    {
+      "index": 0,
+      "total_frames": 596,
+      "kept_frames": 468,
+      "dropped_frames": 128,
+      "percent_reduced": 21.5,
+      "duration_sec": 19.9,
+      "kept_duration_sec": 15.6,
+      "original_label": "Grab the Lego and store it in red box",
+      "policies": {
+        "dedup_only": 484,
+        "include_recovery": 468,
+        "success_only": 82
+      },
+      "phases": [
+        {
+          "label": "Attempt 1",
+          "start_sec": 0.0,
+          "end_sec": 3.37,
+          "frames": 101,
+          "kept_frames": 45
+        },
+        {
+          "label": "Recovery after a drop or miss",
+          "start_sec": 3.37,
+          "end_sec": 14.0,
+          "frames": 319,
+          "kept_frames": 304
+        },
+        {
+          "label": "Attempt 2",
+          "start_sec": 14.0,
+          "end_sec": 14.43,
+          "frames": 13,
+          "kept_frames": 13
+        },
+        {
+          "label": "Recovery after a drop or miss",
+          "start_sec": 14.43,
+          "end_sec": 15.3,
+          "frames": 26,
+          "kept_frames": 24
+        },
+        {
+          "label": "Attempt 3 \u2014 success",
+          "start_sec": 15.3,
+          "end_sec": 18.07,
+          "frames": 83,
+          "kept_frames": 82
+        },
+        {
+          "label": "Idle tail after the task was done",
+          "start_sec": 18.07,
+          "end_sec": 19.87,
+          "frames": 54,
+          "kept_frames": 0
+        }
+      ],
+      "attempts": 3,
+      "recoveries": 2,
+      "idle_tail_frames": 54,
+      "findings": [
+        "The episode label describes a clean run, but the footage contains failure and recovery.",
+        "The labelled span runs past the moment the task was finished."
+      ],
+      "source_bytes": 13210065,
+      "curated_bytes": 1488375,
+      "annotated_bytes": 1801916
+    },
+    {
+      "index": 1,
+      "total_frames": 458,
+      "kept_frames": 313,
+      "dropped_frames": 145,
+      "percent_reduced": 31.7,
+      "duration_sec": 15.3,
+      "kept_duration_sec": 10.4,
+      "original_label": "Grab the Lego and store it in red box",
+      "policies": {
+        "dedup_only": 334,
+        "include_recovery": 313,
+        "success_only": 42
+      },
+      "phases": [
+        {
+          "label": "Attempt 1",
+          "start_sec": 0.0,
+          "end_sec": 4.4,
+          "frames": 132,
+          "kept_frames": 58
+        },
+        {
+          "label": "Recovery after a drop or miss",
+          "start_sec": 4.4,
+          "end_sec": 9.73,
+          "frames": 160,
+          "kept_frames": 155
+        },
+        {
+          "label": "Attempt 2",
+          "start_sec": 9.73,
+          "end_sec": 10.6,
+          "frames": 26,
+          "kept_frames": 26
+        },
+        {
+          "label": "Recovery after a drop or miss",
+          "start_sec": 10.6,
+          "end_sec": 11.67,
+          "frames": 32,
+          "kept_frames": 32
+        },
+        {
+          "label": "Attempt 3 \u2014 success",
+          "start_sec": 11.67,
+          "end_sec": 13.07,
+          "frames": 42,
+          "kept_frames": 42
+        },
+        {
+          "label": "Idle tail after the task was done",
+          "start_sec": 13.07,
+          "end_sec": 15.27,
+          "frames": 66,
+          "kept_frames": 0
+        }
+      ],
+      "attempts": 3,
+      "recoveries": 2,
+      "idle_tail_frames": 66,
+      "findings": [
+        "The episode label describes a clean run, but the footage contains failure and recovery.",
+        "The labelled span runs past the moment the task was finished."
+      ],
+      "source_bytes": 11359145,
+      "curated_bytes": 1162246,
+      "annotated_bytes": 1372429
+    },
+    {
+      "index": 2,
+      "total_frames": 565,
+      "kept_frames": 411,
+      "dropped_frames": 154,
+      "percent_reduced": 27.3,
+      "duration_sec": 18.8,
+      "kept_duration_sec": 13.7,
+      "original_label": "Grab the Lego and store it in red box",
+      "policies": {
+        "dedup_only": 418,
+        "include_recovery": 411,
+        "success_only": 71
+      },
+      "phases": [
+        {
+          "label": "Attempt 1",
+          "start_sec": 0.0,
+          "end_sec": 3.37,
+          "frames": 101,
+          "kept_frames": 42
+        },
+        {
+          "label": "Recovery after a drop or miss",
+          "start_sec": 3.37,
+          "end_sec": 12.13,
+          "frames": 263,
+          "kept_frames": 235
+        },
+        {
+          "label": "Attempt 2",
+          "start_sec": 12.13,
+          "end_sec": 13.53,
+          "frames": 42,
+          "kept_frames": 42
+        },
+        {
+          "label": "Recovery after a drop or miss",
+          "start_sec": 13.53,
+          "end_sec": 14.27,
+          "frames": 22,
+          "kept_frames": 21
+        },
+        {
+          "label": "Attempt 3 \u2014 success",
+          "start_sec": 14.27,
+          "end_sec": 17.47,
+          "frames": 96,
+          "kept_frames": 71
+        },
+        {
+          "label": "Idle tail after the task was done",
+          "start_sec": 17.47,
+          "end_sec": 18.83,
+          "frames": 41,
+          "kept_frames": 0
+        }
+      ],
+      "attempts": 3,
+      "recoveries": 2,
+      "idle_tail_frames": 41,
+      "findings": [
+        "The episode label describes a clean run, but the footage contains failure and recovery.",
+        "The labelled span runs past the moment the task was finished."
+      ],
+      "source_bytes": 14638408,
+      "curated_bytes": 1175211,
+      "annotated_bytes": 1583505
+    }
+  ],
+  "totals": {
+    "episodes": 3,
+    "total_frames": 1619,
+    "source_bytes": 39207618,
+    "curated_bytes": 3825832,
+    "episodes_with_hidden_failures": 3,
+    "policies": {
+      "dedup_only": {
+        "kept_frames": 1236,
+        "percent_reduced": 23.7,
+        "label": "Deduplicate only"
+      },
+      "include_recovery": {
+        "kept_frames": 1192,
+        "percent_reduced": 26.4,
+        "label": "Keep the full task arc"
+      },
+      "success_only": {
+        "kept_frames": 195,
+        "percent_reduced": 88.0,
+        "label": "Successful demonstration only"
+      }
+    }
+  },
+  "throughput": {
+    "hardware": "Apple M1 laptop CPU, no GPU",
+    "stages": [
+      {
+        "label": "Decode video",
+        "fps": 211,
+        "embedder": "local"
+      },
+      {
+        "label": "Embed (fast visual)",
+        "fps": 458,
+        "embedder": "local"
+      },
+      {
+        "label": "End to end (fast visual)",
+        "fps": 141.0,
+        "embedder": "local"
+      },
+      {
+        "label": "Embed (foundation model)",
+        "fps": 16.6,
+        "embedder": "clip"
+      },
+      {
+        "label": "End to end (foundation model)",
+        "fps": 15.4,
+        "embedder": "clip"
+      }
+    ],
+    "full_dataset_sec": 163
+  }
+}
