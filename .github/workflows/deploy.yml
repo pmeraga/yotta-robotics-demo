@@ -18,12 +18,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Deploying is opt-in: the repo is useful as a results site with no backend at
+      # all, so a missing token is an unconfigured deploy rather than a broken build.
+      - name: Check deploy configuration
+        id: config
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          YOTTA_CORE_TOKEN: ${{ secrets.YOTTA_CORE_TOKEN }}
+        run: |
+          missing=""
+          [ -z "$FLY_API_TOKEN" ] && missing="$missing FLY_API_TOKEN"
+          [ -z "$YOTTA_CORE_TOKEN" ] && missing="$missing YOTTA_CORE_TOKEN"
+          if [ -n "$missing" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Deploy skipped::Set repository secrets:$missing"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: superfly/flyctl-actions/setup-flyctl@master
+        if: steps.config.outputs.ready == 'true'
 
       # YOTTA_CORE_TOKEN is a fine-grained PAT with read-only access to
       # pmeraga/yotta-core and nothing else. It is passed as a BuildKit secret so it
       # never lands in an image layer.
       - name: Deploy to Fly
+        if: steps.config.outputs.ready == 'true'
         working-directory: api
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
