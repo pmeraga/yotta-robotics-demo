@@ -1,4 +1,5 @@
 ---
+import { asset } from "../lib/url";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Section from "../components/Section.astro";
 import Stat from "../components/Stat.astro";
@@ -72,7 +73,7 @@ const idleTail = episodes.reduce((sum, e) => sum + e.idle_tail_frames, 0);
   >
     <div class="grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-center">
       <img
-        src="/assets/charts/phase_composition.png"
+        src={asset("/assets/charts/phase_composition.png")}
         alt="Stacked bars showing each episode broken into attempts, recoveries, a successful attempt, and an idle tail"
         class="w-full rounded-xl border border-line"
         loading="lazy"
@@ -108,13 +109,13 @@ const idleTail = episodes.reduce((sum, e) => sum + e.idle_tail_frames, 0);
 
     <div class="mt-10 grid gap-6 lg:grid-cols-2">
       <img
-        src="/assets/charts/kept_vs_dropped.png"
+        src={asset("/assets/charts/kept_vs_dropped.png")}
         alt="Stacked bar chart of frames kept versus removed for each episode"
         class="w-full rounded-xl border border-line"
         loading="lazy"
       />
       <img
-        src="/assets/charts/throughput.png"
+        src={asset("/assets/charts/throughput.png")}
         alt="Bar chart of pipeline throughput in frames per second by stage"
         class="w-full rounded-xl border border-line"
         loading="lazy"
@@ -138,7 +139,7 @@ const idleTail = episodes.reduce((sum, e) => sum + e.idle_tail_frames, 0);
   >
     <div class="grid gap-8 lg:grid-cols-[1fr_1fr] lg:items-center">
       <img
-        src="/assets/charts/policy_comparison.png"
+        src={asset("/assets/charts/policy_comparison.png")}
         alt="Grouped bar chart comparing frames kept under three curation policies"
         class="w-full rounded-xl border border-line"
         loading="lazy"

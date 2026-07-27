@@ -11,7 +11,9 @@ equally good examples of doing the task.
 This repository shows what our pipeline does about it, on real data, with every number reproducible
 from [`data/stats.json`](data/stats.json).
 
-**[Live demo](#run-it-on-your-own-clip) — upload a clip and watch it get taken apart.**
+**[See it live](https://pmeraga.github.io/yotta-robotics-demo/)** — the same results as an
+interactive page. [Uploading your own clip](#run-it-on-your-own-clip) additionally requires the API
+to be running.
 
 ---
 
