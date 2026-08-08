@@ -3,10 +3,14 @@
 This service owns uploads, job lifecycle, and file serving. It contains no curation
 logic: the entire pipeline surface is the single ``run_demo_pipeline`` call in
 :func:`_process`, which returns a result that has already been sanitized upstream.
+
+Job metadata is mirrored to disk under each job's work dir so a process restart
+(or a health-check flap) does not immediately lose in-flight uploads.
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import shutil
@@ -83,12 +87,80 @@ def _client_key(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def _status_path(work_dir: Path) -> Path:
+    return work_dir / "status.json"
+
+
+def _persist(job: Job) -> None:
+    payload = {
+        "id": job.id,
+        "client": job.client,
+        "status": job.status,
+        "step": job.step,
+        "progress": job.progress,
+        "created_at": job.created_at,
+        "summary": job.summary,
+        "error": job.error,
+        "videos": {name: path.as_posix() for name, path in job.videos.items()},
+    }
+    path = _status_path(job.work_dir)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(payload), encoding="utf-8")
+    tmp.replace(path)
+
+
+def _load_job(job_id: str) -> Job | None:
+    work_dir = JOB_ROOT / job_id
+    path = _status_path(work_dir)
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    videos = {}
+    for name, value in (payload.get("videos") or {}).items():
+        video_path = Path(value)
+        if video_path.exists():
+            videos[name] = video_path
+    return Job(
+        id=str(payload.get("id", job_id)),
+        work_dir=work_dir,
+        client=str(payload.get("client", "unknown")),
+        status=payload.get("status", "error"),  # type: ignore[arg-type]
+        step=str(payload.get("step", "Unknown")),
+        progress=float(payload.get("progress", 0.0)),
+        created_at=float(payload.get("created_at", 0.0)),
+        summary=payload.get("summary"),
+        error=payload.get("error"),
+        videos=videos,
+    )
+
+
 def _reap_expired() -> None:
     cutoff = time.time() - JOB_TTL_SEC
     with _lock:
         expired = [job for job in _jobs.values() if job.created_at < cutoff]
         for job in expired:
             _jobs.pop(job.id, None)
+    # Also reap orphaned on-disk jobs the process no longer holds.
+    if JOB_ROOT.exists():
+        for child in JOB_ROOT.iterdir():
+            if not child.is_dir():
+                continue
+            status = _status_path(child)
+            created = None
+            if status.exists():
+                try:
+                    created = float(json.loads(status.read_text(encoding="utf-8")).get("created_at", 0))
+                except (OSError, json.JSONDecodeError, TypeError, ValueError):
+                    created = None
+            if created is None:
+                created = child.stat().st_mtime
+            if created < cutoff:
+                shutil.rmtree(child, ignore_errors=True)
+                with _lock:
+                    _jobs.pop(child.name, None)
     for job in expired:
         shutil.rmtree(job.work_dir, ignore_errors=True)
 
@@ -102,6 +174,7 @@ def _set(job: Job, **fields: Any) -> None:
     with _lock:
         for key, value in fields.items():
             setattr(job, key, value)
+        _persist(job)
 
 
 def _process(job: Job, video_path: Path) -> None:
@@ -132,7 +205,7 @@ def _process(job: Job, video_path: Path) -> None:
 
 @app.get("/api/health")
 def health() -> dict[str, Any]:
-    _reap_expired()
+    # Cheap check only — do not reap on the hot path while a job is encoding.
     return {"status": "ok", "limits": {"max_mb": MAX_UPLOAD_BYTES // (1024 * 1024), "max_seconds": MAX_DURATION_SEC}}
 
 
@@ -190,6 +263,7 @@ async def create_job(request: Request, background: BackgroundTasks, file: Upload
     job = Job(id=job_id, work_dir=work_dir, client=client)
     with _lock:
         _jobs[job_id] = job
+        _persist(job)
 
     background.add_task(_process, job, upload_path)
     logger.info("job %s queued: %s frames, %.1fs", job_id, probed.frames, probed.duration_sec)
@@ -201,10 +275,23 @@ async def create_job(request: Request, background: BackgroundTasks, file: Upload
 
 
 def _require(job_id: str) -> Job:
-    job = _jobs.get(job_id)
-    if job is None:
+    with _lock:
+        job = _jobs.get(job_id)
+        if job is not None:
+            return job
+    loaded = _load_job(job_id)
+    if loaded is None:
         raise HTTPException(404, "That job has expired or does not exist.")
-    return job
+    # A process restart can leave a job stuck in running with no worker — surface that.
+    if loaded.status in {"queued", "running"}:
+        loaded.status = "error"
+        loaded.error = (
+            "Processing was interrupted on the server. Please upload the clip again."
+        )
+        _persist(loaded)
+    with _lock:
+        _jobs[job_id] = loaded
+        return loaded
 
 
 @app.get("/api/jobs/{job_id}")

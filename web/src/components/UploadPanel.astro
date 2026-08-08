@@ -258,8 +258,12 @@ const maxSeconds = 45;
     const poll = async (jobId: string) => {
       try {
         const res = await fetch(`${apiBase}/api/jobs/${jobId}`);
-        if (!res.ok) throw new Error("lost");
-        const status = await res.json();
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          fail(payload.detail || "Lost contact with the server. Please try again.");
+          return;
+        }
+        const status = payload;
 
         stepEl.textContent = status.step;
         barEl.style.width = `${Math.max(6, status.progress * 100)}%`;

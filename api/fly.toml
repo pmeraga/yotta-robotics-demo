@@ -17,9 +17,11 @@ primary_region = "sjc"
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = "stop"
+  # Keep one machine up: jobs live in process memory + on-disk status, and a cold
+  # stop mid-render surfaces as "That job has expired or does not exist."
+  auto_stop_machines = "off"
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
   processes = ["app"]
 
   # Video work is CPU-bound and jobs run in-process, so queue rather than pile on.
@@ -28,11 +30,12 @@ primary_region = "sjc"
     soft_limit = 8
     hard_limit = 16
 
+  # Encoding pegs the CPU; give health checks room so Fly does not kill a busy worker.
   [[http_service.checks]]
-    grace_period = "20s"
+    grace_period = "60s"
     interval = "30s"
     method = "GET"
-    timeout = "5s"
+    timeout = "15s"
     path = "/api/health"
 
 [[vm]]
