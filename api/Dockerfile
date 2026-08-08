@@ -15,10 +15,18 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-# The private pipeline package. The token is mounted for this layer only and is never
-# written to disk in the image.
+# Clone with the mounted token, then install from a local path so pip never prints
+# ``git+https://…token…`` in build logs. Fine-grained PATs authenticate as
+# ``x-access-token``; strip CR/LF in case the secret was pasted with a newline.
 RUN --mount=type=secret,id=yotta_core_token \
-    pip install "yotta-core[demo] @ git+https://x-access-token:$(cat /run/secrets/yotta_core_token)@github.com/pmeraga/yotta-core.git"
+    set -eu; \
+    TOKEN="$(tr -d '\n\r' < /run/secrets/yotta_core_token)"; \
+    test -n "$TOKEN"; \
+    git -c advice.detachedHead=false clone --depth 1 \
+      "https://x-access-token:${TOKEN}@github.com/pmeraga/yotta-core.git" \
+      /tmp/yotta-core; \
+    pip install "/tmp/yotta-core[demo]"; \
+    rm -rf /tmp/yotta-core
 
 
 FROM python:3.11-slim
