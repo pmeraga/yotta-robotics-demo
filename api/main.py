@@ -40,6 +40,7 @@ Status = Literal["queued", "running", "done", "error"]
 
 STEPS = [
     "Reading video",
+    "Checking lighting and temporal quality",
     "Detecting failure and recovery structure",
     "Proposing corrected phase labels",
     "Curating frames",

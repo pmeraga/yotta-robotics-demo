@@ -32,3 +32,4 @@ build/
 !assets/timeline/*.png
 
 .DS_Store
+.vercel

@@ -27,7 +27,8 @@ const maxSeconds = 45;
       </svg>
       <p class="mt-3 text-[15px] font-medium text-ink">Drop a robot episode here</p>
       <p class="mt-1 text-[13px] text-muted">
-        MP4 or MOV, up to {maxMb} MB and {maxSeconds} seconds
+        MP4 or MOV, up to {maxMb} MB and {maxSeconds} seconds. Poor lighting and frozen
+        stretches are detected automatically — uploads still run.
       </p>
       <input id="file-input" type="file" accept="video/mp4,video/quicktime,.mp4,.mov,.m4v" class="sr-only" />
     </label>
@@ -86,6 +87,7 @@ const maxSeconds = 45;
       </figure>
     </div>
 
+    <div id="done-quality" class="mt-6 space-y-2"></div>
     <div id="done-phases" class="mt-6"></div>
     <div id="done-events" class="mt-6 space-y-2"></div>
     <div id="done-notes" class="mt-6 space-y-2"></div>
@@ -167,6 +169,32 @@ const maxSeconds = 45;
           </div>`
         )
         .join("");
+
+      const quality = s.quality ?? { findings: [] };
+      const qualityEl = document.getElementById("done-quality")!;
+      const notable = (quality.findings || []).filter((f: any) => f.severity !== "info");
+      if (notable.length) {
+        qualityEl.innerHTML = `
+          <p class="mb-2 text-[13px] font-medium text-muted">Upload quality checks</p>
+          ${notable
+            .map((f: any) => {
+              const tone =
+                f.severity === "issue"
+                  ? "border-dropped/40 bg-dropped/10 text-ink"
+                  : "border-amber-500/30 bg-amber-500/10 text-ink";
+              return `
+              <div class="rounded-lg border ${tone} px-4 py-3">
+                <p class="text-[13px] font-medium">${f.title}</p>
+                <p class="mt-0.5 text-[13px] leading-snug text-muted">${f.detail}</p>
+              </div>`;
+            })
+            .join("")}`;
+      } else {
+        qualityEl.innerHTML = `
+          <p class="rounded-lg border border-line/60 bg-panel/40 px-4 py-2.5 text-[13px] text-muted">
+            No major lighting or freeze issues detected in the upload.
+          </p>`;
+      }
 
       const colors = [
         "bg-sky-400",
