@@ -18,13 +18,16 @@ RUN pip install -r requirements.txt
 # Clone with the mounted token, then install from a local path so pip never prints
 # ``git+https://…token…`` in build logs. Fine-grained PATs authenticate as
 # ``x-access-token``; strip CR/LF in case the secret was pasted with a newline.
+# YOTTA_CORE_REF busts the Docker cache when we need a fresh private package.
+ARG YOTTA_CORE_REF=main
 RUN --mount=type=secret,id=yotta_core_token \
     set -eu; \
     TOKEN="$(tr -d '\n\r' < /run/secrets/yotta_core_token)"; \
     test -n "$TOKEN"; \
-    git -c advice.detachedHead=false clone --depth 1 \
+    git -c advice.detachedHead=false clone --depth 1 --branch "${YOTTA_CORE_REF}" \
       "https://x-access-token:${TOKEN}@github.com/pmeraga/yotta-core.git" \
       /tmp/yotta-core; \
+    echo "yotta-core $(git -C /tmp/yotta-core rev-parse --short HEAD)"; \
     pip install "/tmp/yotta-core[demo]"; \
     rm -rf /tmp/yotta-core
 

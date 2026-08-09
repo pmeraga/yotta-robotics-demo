@@ -184,14 +184,15 @@ def _process(job: Job, video_path: Path) -> None:
 
     _set(job, status="running", step=STEPS[0], progress=0.0)
     try:
-        result = run_demo_pipeline(
-            video_path,
-            job.work_dir / "run",
-            progress=on_progress,
-            annotate_max_width=640,
-            annotate_frame_stride=2,
-            report_encode_progress=False,
-        )
+        import inspect
+
+        kwargs: dict[str, Any] = {"progress": on_progress}
+        params = inspect.signature(run_demo_pipeline).parameters
+        if "annotate_max_width" in params:
+            kwargs["annotate_max_width"] = 640
+        if "annotate_frame_stride" in params:
+            kwargs["annotate_frame_stride"] = 2
+        result = run_demo_pipeline(video_path, job.work_dir / "run", **kwargs)
         _set(
             job,
             status="done",
