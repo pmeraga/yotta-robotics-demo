@@ -184,7 +184,14 @@ def _process(job: Job, video_path: Path) -> None:
 
     _set(job, status="running", step=STEPS[0], progress=0.0)
     try:
-        result = run_demo_pipeline(video_path, job.work_dir / "run", progress=on_progress)
+        result = run_demo_pipeline(
+            video_path,
+            job.work_dir / "run",
+            progress=on_progress,
+            annotate_max_width=640,
+            annotate_frame_stride=2,
+            report_encode_progress=False,
+        )
         _set(
             job,
             status="done",
