@@ -1,0 +1,45 @@
+{
+  "candidates": [
+    {
+      "id": "yaak-ai/L2D",
+      "name": "L2D — Learning to Drive (Yaak × Hugging Face)",
+      "url": "https://huggingface.co/datasets/yaak-ai/L2D",
+      "blog": "https://huggingface.co/blog/lerobot-goes-to-driving-school",
+      "format": "LeRobotDataset (v2.1 / v3 streaming)",
+      "domain": "Autonomous / student–expert driving",
+      "why": "Native LeRobot format with cameras + vehicle state/actions. Best first AV target for the Yotta ingest path — no format converter required.",
+      "scale": "~5,000 hours · R2+ community releases · full archive >1 PB",
+      "fit": "high"
+    },
+    {
+      "id": "commaai/comma2k19",
+      "name": "comma2k19",
+      "url": "https://github.com/commaai/comma2k19",
+      "format": "Custom (needs conversion)",
+      "domain": "Highway / openpilot-style driving",
+      "why": "Smaller, well-documented open driving logs. Convert camera + CAN into LeRobot episodes to stress quality and motion↔video lag gates.",
+      "scale": "~33 hours · ~100 GB class",
+      "fit": "medium"
+    },
+    {
+      "id": "nuscenes",
+      "name": "nuScenes",
+      "url": "https://www.nuscenes.org/",
+      "format": "Custom (needs conversion)",
+      "domain": "Urban AV perception",
+      "why": "Standard multi-camera urban scenes. Strong for occlusion and lighting QA once wrapped as time-aligned episodes.",
+      "scale": "1,000 scenes · ~5.5 hours labeled",
+      "fit": "medium"
+    },
+    {
+      "id": "LeRobot-worldwide-hackathon/320-Quarter_Brain-lego_picking",
+      "name": "Quarter Brain lego picking (shipped on this site)",
+      "url": "https://huggingface.co/datasets/LeRobot-worldwide-hackathon/320-Quarter_Brain-lego_picking",
+      "format": "LeRobot",
+      "domain": "Manipulation teleop",
+      "why": "Measured demo below — 46 episodes; every sampled run hid failure and recovery under a clean task label.",
+      "scale": "23,041 frames · 46 episodes",
+      "fit": "shipped"
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import Stat from "../components/Stat.astro";
 import EpisodeCard from "../components/EpisodeCard.astro";
 import UploadPanel from "../components/UploadPanel.astro";
 import stats from "../../../data/stats.json";
+import datasets from "../../../data/datasets.json";
 
 const { dataset, episodes, totals, throughput } = stats;
 const headline = totals.policies.include_recovery;
@@ -14,83 +15,110 @@ const dedupOnly = totals.policies.dedup_only;
 const label = episodes[0].original_label;
 const endToEnd = throughput.stages.find((s) => s.label === "End to end (fast visual)")!.fps;
 const idleTail = episodes.reduce((sum, e) => sum + e.idle_tail_frames, 0);
+const sourceMb = (totals.source_bytes / (1024 * 1024)).toFixed(0);
+const curatedMb = (totals.curated_bytes / (1024 * 1024)).toFixed(1);
+
+const fitLabel: Record<string, string> = {
+  high: "Best fit",
+  medium: "Needs convert",
+  shipped: "On this site",
+};
 ---
 
 <BaseLayout
-  title="Yotta Robotics — curation infrastructure for robot training data"
+  title="Yotta — curation for robot & AV training data"
   description="Robot episodes are labelled as clean demonstrations but contain failures, recoveries, and dead time. Yotta reconstructs what actually happened and cuts the dataset down to what is worth training on."
 >
-  <section class="relative overflow-hidden border-b border-line/70">
-    <div
-      class="pointer-events-none absolute inset-x-0 -top-40 h-80 bg-[radial-gradient(60%_100%_at_50%_100%,rgba(56,189,248,0.16),transparent)]"
-    >
-    </div>
-    <div class="relative mx-auto max-w-6xl px-6 pb-16 pt-16 sm:pb-20 sm:pt-24">
-      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
-        Data curation for robotics foundation models
-      </p>
-      <h1 class="mt-4 max-w-4xl text-4xl font-semibold leading-[1.1] tracking-tight text-ink sm:text-5xl">
-        Your robot data says one thing.{" "}
-        <span class="text-muted">The footage says another.</span>
-      </h1>
-      <p class="mt-5 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
-        Every episode in this dataset is labelled{" "}
-        <span class="text-ink">“{label}”</span>. Not one of them is a clean run. All{" "}
-        {totals.episodes} contain a failure and a recovery the label never mentions, and all{" "}
-        {totals.episodes} keep recording after the task is already finished. We find that
-        structure automatically, fix the labels, and cut the dataset down to what is worth
-        training on.
-      </p>
-
-      <div class="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat value={`${totals.episodes_with_hidden_failures}/${totals.episodes}`} label="Episodes whose label hid a failure" tone="warn" />
-        <Stat value={`${headline.percent_reduced}%`} label="Frames removed, full task arc kept" tone="accent" />
-        <Stat value={`${successOnly.percent_reduced}%`} label="Removed when only success matters" />
-        <Stat value={`${endToEnd} fps`} label="End to end on a laptop CPU" />
+  <!-- Hero: brand + one claim + one visual -->
+  <section class="border-b border-line bg-panel">
+    <div class="mx-auto grid max-w-6xl gap-0 lg:grid-cols-2">
+      <div class="flex flex-col justify-center border-b border-line px-5 py-12 sm:px-6 sm:py-16 lg:border-b-0 lg:border-r">
+        <img
+          src={asset("/brand-wordmark.svg")}
+          alt="Yotta"
+          class="h-10 w-auto self-start sm:h-12"
+        />
+        <h1 class="mt-8 text-3xl font-semibold leading-[1.15] tracking-tight text-ink sm:text-4xl">
+          Your labels say success. The footage says otherwise.
+        </h1>
+        <p class="mt-4 max-w-md text-[15px] leading-relaxed text-muted">
+          We reconstruct attempts, recoveries, and idle tails from LeRobot episodes —
+          then cut training sets to what is actually worth learning from.
+        </p>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a
+            href="#try"
+            class="border border-ink bg-ink px-4 py-2.5 text-sm font-medium text-panel hover:border-accent hover:bg-accent"
+          >
+            Run on your clip
+          </a>
+          <a
+            href="#results"
+            class="border border-line bg-panel px-4 py-2.5 text-sm font-medium text-ink hover:border-ink"
+          >
+            Measured results
+          </a>
+        </div>
       </div>
+      <div class="relative bg-ink">
+        <video
+          class="aspect-video h-full w-full object-cover"
+          src={asset("/assets/video/annotated_ep0.mp4")}
+          autoplay
+          muted
+          loop
+          playsinline
+          preload="metadata"
+        ></video>
+        <p class="absolute bottom-0 left-0 right-0 border-t border-line/40 bg-ink/90 px-4 py-2 font-mono text-[11px] text-panel">
+          ep0 annotated · green = kept · red = dropped · {episodes[0].percent_reduced}% removed
+        </p>
+      </div>
+    </div>
+  </section>
 
-      <div class="mt-8 flex flex-wrap gap-3">
-        <a
-          href="#try"
-          class="rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-panel transition hover:bg-accent/90"
-        >
-          Run it on your own clip
-        </a>
-        <a
-          href="#results"
-          class="rounded-lg border border-line px-4 py-2.5 text-sm font-medium text-muted transition hover:border-accent/50 hover:text-ink"
-        >
-          See the results
-        </a>
+  <!-- KPI strip -->
+  <section class="border-b border-line bg-paper">
+    <div class="mx-auto grid max-w-6xl grid-cols-2 gap-px bg-line sm:grid-cols-4">
+      <div class="bg-paper p-1">
+        <Stat value={`${totals.episodes_with_hidden_failures}/${totals.episodes}`} label="Episodes with hidden failure" tone="warn" />
+      </div>
+      <div class="bg-paper p-1">
+        <Stat value={`${headline.percent_reduced}%`} label="Frames cut (full task arc)" tone="kept" />
+      </div>
+      <div class="bg-paper p-1">
+        <Stat value={`${successOnly.percent_reduced}%`} label="Cut if success-only" tone="accent" />
+      </div>
+      <div class="bg-paper p-1">
+        <Stat value={`${endToEnd}`} label="fps end-to-end (laptop CPU)" />
       </div>
     </div>
   </section>
 
   <Section
-    eyebrow="The problem"
-    title="One label, stretched over everything that happened"
-    lede="Robot datasets are recorded at a fixed camera rate but carry information at a much lower one. The labels make it worse: a single task string is stamped across an entire episode, so a model trained on it learns that flailing, dropping the part, and sitting still afterwards are all equally good examples of doing the task."
+    eyebrow="01 — The problem"
+    title={`Every frame labelled “${label}”`}
+    lede="A single task string is stamped across the whole episode. Failures, re-grasps, and post-success idle look like good demonstrations to any model trained on the raw labels."
   >
-    <div class="grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-center">
+    <div class="grid gap-6 lg:grid-cols-2">
       <img
         src={asset("/assets/charts/phase_composition.png")}
-        alt="Stacked bars showing each episode broken into attempts, recoveries, a successful attempt, and an idle tail"
-        class="w-full rounded-xl border border-line"
+        alt="Stacked bars showing each episode broken into attempts, recoveries, success, and idle"
+        class="w-full border border-line bg-panel"
         loading="lazy"
       />
-      <div class="space-y-4">
-        <div class="rounded-xl border border-dropped/25 bg-dropped/5 px-5 py-4">
-          <p class="text-[13px] font-medium uppercase tracking-wide text-dropped">What the label says</p>
-          <p class="mt-1.5 text-[15px] text-ink">“{label}”</p>
+      <div class="space-y-0 border border-line bg-panel">
+        <div class="border-b border-line px-5 py-4">
+          <p class="font-mono text-[11px] uppercase tracking-wide text-dropped">Label on disk</p>
+          <p class="mt-1 text-[15px] font-medium text-ink">“{label}”</p>
           <p class="mt-1 text-[13px] text-muted">Applied to all {episodes[0].total_frames} frames of episode 0.</p>
         </div>
-        <div class="rounded-xl border border-kept/25 bg-kept/5 px-5 py-4">
-          <p class="text-[13px] font-medium uppercase tracking-wide text-kept">What actually happened</p>
-          <ul class="mt-2 space-y-1.5 text-[14px] leading-snug text-muted">
-            <li>An attempt that fails and has to be recovered from.</li>
-            <li>A second attempt that also fails.</li>
-            <li>A third attempt that finally succeeds.</li>
-            <li>{idleTail} frames across the three episodes recorded after the task was already done.</li>
+        <div class="px-5 py-4">
+          <p class="font-mono text-[11px] uppercase tracking-wide text-kept">Structure recovered</p>
+          <ul class="mt-2 space-y-2 text-[14px] leading-snug text-muted">
+            <li>Failed attempt → recovery → failed attempt → recovery → success.</li>
+            <li>{idleTail} idle-tail frames across 3 episodes after the task was done.</li>
+            <li>{sourceMb} MB source → {curatedMb} MB curated under “full task arc”.</li>
           </ul>
         </div>
       </div>
@@ -99,78 +127,146 @@ const idleTail = episodes.reduce((sum, e) => sum + e.idle_tail_frames, 0);
 
   <Section
     id="results"
-    eyebrow="Results"
-    title={`${totals.total_frames} frames, three episodes, every decision auditable`}
-    lede="Each clip below is the original footage with the pipeline's verdict drawn on every frame. Green means the frame survives into the training set, red means it was removed. The strip along the bottom fills in as the episode plays."
+    eyebrow="02 — Measured results"
+    title={`${totals.total_frames.toLocaleString()} frames · 3 episodes · every cut auditable`}
+    lede="Annotated videos show keep/drop per frame. Phase rows below are the same numbers the pipeline writes to sidecars."
   >
-    <div class="grid gap-6 lg:grid-cols-3">
+    <div class="overflow-x-auto border border-line bg-panel">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Episode</th>
+            <th>Frames</th>
+            <th>Kept</th>
+            <th>Dropped</th>
+            <th>Reduced</th>
+            <th>Attempts</th>
+            <th>Recoveries</th>
+            <th>Idle tail</th>
+            <th>Source → curated</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            episodes.map((ep) => (
+              <tr>
+                <td class="num">ep{ep.index}</td>
+                <td class="num">{ep.total_frames}</td>
+                <td class="num">{ep.kept_frames}</td>
+                <td class="num">{ep.dropped_frames}</td>
+                <td class="num">{ep.percent_reduced}%</td>
+                <td class="num">{ep.attempts}</td>
+                <td class="num">{ep.recoveries}</td>
+                <td class="num">{ep.idle_tail_frames}</td>
+                <td class="num">
+                  {(ep.source_bytes / (1024 * 1024)).toFixed(1)} → {(ep.curated_bytes / (1024 * 1024)).toFixed(1)} MB
+                </td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mt-8 grid gap-4 lg:grid-cols-3">
       {episodes.map((episode) => <EpisodeCard episode={episode} />)}
     </div>
 
-    <div class="mt-10 grid gap-6 lg:grid-cols-2">
-      <img
-        src={asset("/assets/charts/kept_vs_dropped.png")}
-        alt="Stacked bar chart of frames kept versus removed for each episode"
-        class="w-full rounded-xl border border-line"
-        loading="lazy"
-      />
-      <img
-        src={asset("/assets/charts/throughput.png")}
-        alt="Bar chart of pipeline throughput in frames per second by stage"
-        class="w-full rounded-xl border border-line"
-        loading="lazy"
-      />
+    <div class="mt-8 grid gap-4 lg:grid-cols-2">
+      <figure class="border border-line bg-panel">
+        <img
+          src={asset("/assets/charts/kept_vs_dropped.png")}
+          alt="Kept versus dropped frames per episode"
+          class="w-full"
+          loading="lazy"
+        />
+        <figcaption class="border-t border-line px-4 py-2 font-mono text-[11px] text-muted">
+          kept_vs_dropped.png · include_recovery policy
+        </figcaption>
+      </figure>
+      <figure class="border border-line bg-panel">
+        <img
+          src={asset("/assets/charts/throughput.png")}
+          alt="Pipeline throughput by stage"
+          class="w-full"
+          loading="lazy"
+        />
+        <figcaption class="border-t border-line px-4 py-2 font-mono text-[11px] text-muted">
+          throughput.png · {throughput.hardware}
+        </figcaption>
+      </figure>
     </div>
 
-    <p class="mt-6 text-[14px] leading-relaxed text-muted">
-      The whole {dataset.total_frames.toLocaleString()}-frame dataset processes in about{" "}
-      {Math.round(throughput.full_dataset_sec / 60)} minutes single-threaded ({throughput.hardware}).
-      Swapping the fast visual embedding for a foundation
-      model raises quality and costs roughly an order of magnitude in speed, which is the right
-      trade on a GPU and the wrong one on a laptop.
+    <div class="mt-6 overflow-x-auto border border-line bg-panel">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Stage</th>
+            <th>FPS</th>
+            <th>Embedder</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            throughput.stages.map((s) => (
+              <tr>
+                <td>{s.label}</td>
+                <td class="num">{s.fps}</td>
+                <td class="num">{s.embedder}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="mt-4 text-[13px] text-muted">
+      Full {dataset.total_frames.toLocaleString()}-frame dataset ≈ {Math.round(throughput.full_dataset_sec / 60)} min
+      single-threaded on {throughput.hardware}. Source:{" "}
+      <a class="text-accent underline-offset-2 hover:underline" href={dataset.url}>{dataset.name}</a>
+      · camera {dataset.camera} · {dataset.fps} fps · {dataset.total_episodes} episodes.
     </p>
   </Section>
 
   <Section
     id="policies"
-    eyebrow="Policies"
-    title="The same episode, cut three ways"
-    lede="Curation is not one number. What counts as redundant depends on what the data is for, so the goal is an input rather than something baked into the algorithm."
+    eyebrow="03 — Policies"
+    title="Same footage, three training goals"
+    lede="Curation is an input. What counts as redundant depends on whether you need recoveries for robustness or only clean successes for imitation."
   >
-    <div class="grid gap-8 lg:grid-cols-[1fr_1fr] lg:items-center">
+    <div class="grid gap-6 lg:grid-cols-2">
       <img
         src={asset("/assets/charts/policy_comparison.png")}
-        alt="Grouped bar chart comparing frames kept under three curation policies"
-        class="w-full rounded-xl border border-line"
+        alt="Frames kept under three curation policies"
+        class="w-full border border-line bg-panel"
         loading="lazy"
       />
-      <div class="space-y-3">
+      <div class="border border-line bg-panel divide-y divide-line">
         {
           [
             {
               name: dedupOnly.label,
               kept: dedupOnly.kept_frames,
               pct: dedupOnly.percent_reduced,
-              body: "Remove only what is visually redundant. Nothing about the task structure changes, so this is the safe default when a team is not sure yet what it wants.",
+              body: "Remove visual redundancy only. Task structure unchanged — safe default when the training goal is still unclear.",
             },
             {
               name: headline.label,
               kept: headline.kept_frames,
               pct: headline.percent_reduced,
-              body: "Keep the failures and recoveries, because a policy that has never seen a robot drop something cannot learn to pick it back up. The dead time after success still goes.",
+              body: "Keep failures and recoveries; drop post-success idle. Policies that never see a drop cannot learn to recover.",
             },
             {
               name: successOnly.label,
               kept: successOnly.kept_frames,
               pct: successOnly.percent_reduced,
-              body: "Keep only the attempt that worked. This is the aggressive cut for imitation learning on clean demonstrations, and it is where most of the storage savings live.",
+              body: "Keep only the attempt that worked. Aggressive cut for clean imitation — where most storage savings live.",
             },
           ].map((policy) => (
-            <div class="rounded-xl border border-line bg-surface/40 px-5 py-4">
+            <div class="px-5 py-4">
               <div class="flex flex-wrap items-baseline justify-between gap-2">
                 <h3 class="text-[15px] font-semibold text-ink">{policy.name}</h3>
                 <span class="font-mono text-[13px] text-accent">
-                  {policy.kept} frames · −{policy.pct}%
+                  {policy.kept}f · −{policy.pct}%
                 </span>
               </div>
               <p class="mt-1.5 text-[14px] leading-relaxed text-muted">{policy.body}</p>
@@ -182,43 +278,98 @@ const idleTail = episodes.reduce((sum, e) => sum + e.idle_tail_frames, 0);
   </Section>
 
   <Section
+    id="datasets"
+    eyebrow="04 — Open datasets"
+    title="Where to point the pipeline next"
+    lede="Manipulation demo is shipped. For autonomous driving, start with LeRobot-native L2D — then convert comma2k19 / nuScenes if you need more diversity."
+  >
+    <div class="overflow-x-auto border border-line bg-panel">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Fit</th>
+            <th>Dataset</th>
+            <th>Format</th>
+            <th>Domain</th>
+            <th>Scale</th>
+            <th>Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            datasets.candidates.map((d) => (
+              <tr>
+                <td>
+                  <span class="font-mono text-[11px] uppercase tracking-wide text-accent">
+                    {fitLabel[d.fit] ?? d.fit}
+                  </span>
+                </td>
+                <td>
+                  <a class="font-medium text-ink underline-offset-2 hover:text-accent hover:underline" href={d.url}>
+                    {d.name}
+                  </a>
+                  {d.blog && (
+                    <p class="mt-1">
+                      <a class="text-[12px] text-accent hover:underline" href={d.blog}>
+                        HF blog
+                      </a>
+                    </p>
+                  )}
+                </td>
+                <td class="num">{d.format}</td>
+                <td>{d.domain}</td>
+                <td>{d.scale}</td>
+                <td class="max-w-xs text-muted">{d.why}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="mt-4 text-[13px] text-muted">
+      Recommended first AV pull: stream a small L2D revision with{" "}
+      <code class="font-mono text-[12px] text-ink">StreamingLeRobotDataset("yaak-ai/L2D")</code>,
+      run quality + event detection, then scale. See{" "}
+      <a class="text-accent underline-offset-2 hover:underline" href="https://huggingface.co/blog/lerobot-goes-to-driving-school"
+        >LeRobot goes to driving school</a
+      >.
+    </p>
+  </Section>
+
+  <Section
     id="try"
-    eyebrow="Live demo"
+    eyebrow="05 — Live demo"
     title="Run the pipeline on your own clip"
-    lede="Upload a short robot episode and watch it get taken apart: failure and recovery detection, proposed phase labels, and a curated cut you can play back against the original. Nothing is stored — uploads and results are deleted an hour after processing."
+    lede="Upload a short robot episode. You get failure/recovery detection, proposed phase labels, lighting/freeze QA, and a curated cut. Uploads and results are deleted about an hour after processing."
   >
     <UploadPanel />
   </Section>
 
   <Section
-    eyebrow="How it fits together"
-    title="Nine stages, adopted one at a time"
-    lede="Teams rarely want the whole pipeline on day one. Each stage writes a sidecar next to the untouched recording, so any one of them can be adopted alone and audited independently."
+    eyebrow="06 — Pipeline"
+    title="Nine stages, adoptable one at a time"
+    lede="Each stage writes a sidecar next to the untouched recording — adopt one gate without buying the whole stack."
   >
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <ol class="border border-line bg-panel divide-y divide-line">
       {
         [
-          ["Ingest and normalize", "Pull datasets from Hugging Face and convert trajectories plus camera video into a single reviewable timeline."],
-          ["Label scaffolding", "Generate and validate time-ranged annotation templates beside recordings that are never modified."],
-          ["Action-state inference", "Open-vocabulary metadata over frame windows, from a local vision model or a dependency-free heuristic."],
-          ["Geometry enrichment", "Depth, surface normal, and segmentation sidecars from a pluggable vision provider."],
-          ["Quality assessment", "Score clips against blessed exemplars using dense retrieval, lexical search, defect gates, and trajectory matching."],
-          ["Frame curation", "The core engine: visual drift keyframing fused with kinematic signals so real motion is never mistaken for redundancy."],
-          ["Failure detection", "Find dropped objects, re-grasps, backtracks, and post-success idle inside a single episode without per-frame labels."],
-          ["Annotation QA", "Cross-check existing labels against the footage, flag the ones that lie, and propose corrected phase labels."],
-          ["Training handoff", "Pruned datasets, curated video, and annotation sidecars with verified-lossless state and action round-trip."],
+          ["Ingest and normalize", "HF datasets → reviewable timeline of trajectories + camera."],
+          ["Label scaffolding", "Time-ranged annotation templates beside immutable recordings."],
+          ["Action-state inference", "Open-vocabulary metadata over frame windows."],
+          ["Geometry enrichment", "Depth / normals / segmentation sidecars."],
+          ["Quality assessment", "Exemplar retrieval, defect gates, trajectory matching."],
+          ["Frame curation", "Visual drift + kinematics so real motion is not treated as redundancy."],
+          ["Failure detection", "Drops, re-grasps, backtracks, post-success idle — no per-frame labels required."],
+          ["Annotation QA", "Flag lying labels; propose corrected phase spans."],
+          ["Training handoff", "Pruned datasets, curated video, lossless state/action round-trip."],
         ].map(([name, body], i) => (
-          <div class="rounded-xl border border-line bg-surface/40 px-5 py-4">
-            <div class="flex items-center gap-2.5">
-              <span class="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-accent/12 font-mono text-[11px] text-accent">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <h3 class="text-[14px] font-semibold text-ink">{name}</h3>
-            </div>
-            <p class="mt-2 text-[13px] leading-relaxed text-muted">{body}</p>
-          </div>
+          <li class="grid gap-1 px-5 py-3.5 sm:grid-cols-[3rem_12rem_1fr] sm:items-baseline sm:gap-4">
+            <span class="font-mono text-[12px] text-accent">{String(i + 1).padStart(2, "0")}</span>
+            <span class="text-[14px] font-semibold text-ink">{name}</span>
+            <span class="text-[13px] text-muted">{body}</span>
+          </li>
         ))
       }
-    </div>
+    </ol>
   </Section>
 </BaseLayout>

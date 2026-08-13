@@ -4,31 +4,16 @@ const maxMb = 50;
 const maxSeconds = 45;
 ---
 
-<div class="rounded-2xl border border-line bg-surface/40 p-6 sm:p-8" data-api-base={apiBase}>
+<div class="border border-line bg-panel p-5 sm:p-6" data-api-base={apiBase}>
   <div id="upload-idle">
     <label
       id="dropzone"
       for="file-input"
-      class="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-line px-6 py-12 text-center transition hover:border-accent/60 hover:bg-accent/5"
+      class="flex cursor-pointer flex-col items-center justify-center border border-dashed border-line bg-paper px-6 py-12 text-center hover:border-accent"
     >
-      <svg
-        class="h-9 w-9 text-muted"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.5"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M12 16.5V9m0 0L8.25 12.75M12 9l3.75 3.75M3 16.5v1.875A2.625 2.625 0 005.625 21h12.75A2.625 2.625 0 0021 18.375V16.5"
-        ></path>
-      </svg>
-      <p class="mt-3 text-[15px] font-medium text-ink">Drop a robot episode here</p>
-      <p class="mt-1 text-[13px] text-muted">
-        MP4 or MOV, up to {maxMb} MB and {maxSeconds} seconds. Poor lighting and frozen
-        stretches are detected automatically — uploads still run.
+      <p class="text-[15px] font-medium text-ink">Drop a robot episode here</p>
+      <p class="mt-1 max-w-md text-[13px] text-muted">
+        MP4 or MOV · ≤{maxMb} MB · ≤{maxSeconds}s. Lighting and freeze stretches are flagged; uploads still run.
       </p>
       <input id="file-input" type="file" accept="video/mp4,video/quicktime,.mp4,.mov,.m4v" class="sr-only" />
     </label>
@@ -40,42 +25,40 @@ const maxSeconds = 45;
       <p id="run-step" class="text-[15px] font-medium text-ink">Uploading</p>
       <p id="run-elapsed" class="font-mono text-[13px] text-muted">0.0s</p>
     </div>
-    <div class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-panel">
-      <div id="run-bar" class="h-full w-0 rounded-full bg-accent transition-all duration-500"></div>
+    <div class="mt-3 h-2 w-full overflow-hidden bg-surface">
+      <div id="run-bar" class="h-full w-0 bg-accent"></div>
     </div>
-    <ol id="run-steps" class="mt-5 space-y-2 text-[13px] text-muted"></ol>
+    <ol id="run-steps" class="mt-5 space-y-2 font-mono text-[12px] text-muted"></ol>
   </div>
 
   <div id="upload-done" class="hidden">
-    <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
       <div>
         <p class="text-[15px] font-semibold text-ink">Curation complete</p>
-        <p id="done-headline" class="mt-0.5 text-[13px] text-muted"></p>
+        <p id="done-headline" class="mt-0.5 font-mono text-[12px] text-muted"></p>
       </div>
       <button
         id="reset-button"
-        class="rounded-lg border border-line px-3.5 py-1.5 text-[13px] text-muted transition hover:border-accent/50 hover:text-ink"
+        class="border border-line bg-panel px-3.5 py-1.5 text-[13px] text-ink hover:border-ink"
       >
         Try another clip
       </button>
     </div>
 
-    <div id="done-stats" class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4"></div>
+    <div id="done-stats" class="mt-5 grid grid-cols-2 gap-px bg-line sm:grid-cols-4"></div>
 
-    <div class="mt-6 grid gap-5 lg:grid-cols-2">
-      <figure>
-        <figcaption class="mb-2 text-[13px] font-medium text-muted">
-          Every frame, with the verdict
+    <div class="mt-6 grid gap-4 lg:grid-cols-2">
+      <figure class="border border-line">
+        <figcaption class="border-b border-line bg-surface px-3 py-2 font-mono text-[11px] text-muted">
+          annotated · keep/drop overlay
         </figcaption>
-        <video id="video-annotated" class="aspect-video w-full rounded-xl bg-black" controls muted playsinline
-        ></video>
+        <video id="video-annotated" class="aspect-video w-full bg-ink" controls muted playsinline></video>
       </figure>
-      <figure>
-        <figcaption class="mb-2 text-[13px] font-medium text-muted">
-          What survives curation
+      <figure class="border border-line">
+        <figcaption class="border-b border-line bg-surface px-3 py-2 font-mono text-[11px] text-muted">
+          curated · survivors only
         </figcaption>
-        <video id="video-curated" class="aspect-video w-full rounded-xl bg-black" controls muted loop playsinline
-        ></video>
+        <video id="video-curated" class="aspect-video w-full bg-ink" controls muted loop playsinline></video>
       </figure>
     </div>
 
@@ -131,20 +114,28 @@ const maxSeconds = 45;
         video.src = URL.createObjectURL(file);
       });
 
+    const phaseClass = (label: string) => {
+      const l = label.toLowerCase();
+      if (l.includes("idle")) return "bg-idle";
+      if (l.includes("success")) return "bg-success";
+      if (l.includes("recovery") || l.includes("drop") || l.includes("miss")) return "bg-recovery";
+      return "bg-attempt";
+    };
+
     const renderSteps = (current: string) => {
       const seen = [...stepsEl.querySelectorAll("li")].map((li) => li.dataset.step);
       if (seen.includes(current)) return;
       const li = document.createElement("li");
       li.dataset.step = current;
       li.className = "flex items-center gap-2";
-      li.innerHTML = `<span class="h-1.5 w-1.5 rounded-full bg-accent"></span><span>${current}</span>`;
+      li.innerHTML = `<span class="h-2 w-2 bg-accent"></span><span>${current}</span>`;
       stepsEl.appendChild(li);
     };
 
     const renderResult = (result: any) => {
       const s = result.summary;
       document.getElementById("done-headline")!.textContent =
-        `${s.total_frames} frames in, ${s.kept_frames} kept — ${s.percent_reduced}% removed in ${s.elapsed_sec}s`;
+        `${s.total_frames} frames in · ${s.kept_frames} kept · ${s.percent_reduced}% removed · ${s.elapsed_sec}s`;
 
       const stats = [
         [`${s.percent_reduced}%`, "Removed", "text-kept"],
@@ -155,8 +146,8 @@ const maxSeconds = 45;
       document.getElementById("done-stats")!.innerHTML = stats
         .map(
           ([value, label, tone]) => `
-          <div class="rounded-xl border border-line bg-panel/50 px-4 py-3">
-            <div class="text-xl font-semibold ${tone}">${value}</div>
+          <div class="bg-panel px-4 py-3">
+            <div class="font-mono text-xl font-medium ${tone}">${value}</div>
             <div class="mt-0.5 text-[12px] text-muted">${label}</div>
           </div>`
         )
@@ -167,15 +158,15 @@ const maxSeconds = 45;
       const notable = (quality.findings || []).filter((f: any) => f.severity !== "info");
       if (notable.length) {
         qualityEl.innerHTML = `
-          <p class="mb-2 text-[13px] font-medium text-muted">Upload quality checks</p>
+          <p class="mb-2 font-mono text-[11px] uppercase tracking-wide text-muted">Upload quality</p>
           ${notable
             .map((f: any) => {
               const tone =
                 f.severity === "issue"
-                  ? "border-dropped/40 bg-dropped/10 text-ink"
-                  : "border-amber-500/30 bg-amber-500/10 text-ink";
+                  ? "border-dropped text-ink"
+                  : "border-recovery text-ink";
               return `
-              <div class="rounded-lg border ${tone} px-4 py-3">
+              <div class="border ${tone} px-4 py-3">
                 <p class="text-[13px] font-medium">${f.title}</p>
                 <p class="mt-0.5 text-[13px] leading-snug text-muted">${f.detail}</p>
               </div>`;
@@ -183,44 +174,36 @@ const maxSeconds = 45;
             .join("")}`;
       } else {
         qualityEl.innerHTML = `
-          <p class="rounded-lg border border-line/60 bg-panel/40 px-4 py-2.5 text-[13px] text-muted">
-            No major lighting or freeze issues detected in the upload.
+          <p class="border border-line bg-paper px-4 py-2.5 text-[13px] text-muted">
+            No major lighting or freeze issues detected.
           </p>`;
       }
 
-      const colors = [
-        "bg-sky-400",
-        "bg-amber-500",
-        "bg-emerald-500",
-        "bg-violet-400",
-        "bg-pink-400",
-        "bg-slate-500",
-      ];
       const labels = [...new Set(s.phases.map((p: any) => p.label))];
       const phases = document.getElementById("done-phases")!;
       if (s.phases.length) {
         phases.innerHTML = `
-          <p class="mb-2 text-[13px] font-medium text-muted">What the episode actually contains</p>
-          <div class="flex h-2.5 w-full overflow-hidden rounded-full bg-panel">
+          <p class="mb-2 font-mono text-[11px] uppercase tracking-wide text-muted">Recovered phases</p>
+          <div class="phase-bar">
             ${s.phases
               .map(
                 (p: any) =>
-                  `<div class="${colors[labels.indexOf(p.label) % colors.length]}" style="width:${
+                  `<span class="${phaseClass(p.label)}" style="width:${
                     (p.frames / s.total_frames) * 100
-                  }%" title="${p.label}: ${p.frames} frames, ${p.kept_frames} kept"></div>`
+                  }%" title="${p.label}: ${p.frames} frames, ${p.kept_frames} kept"></span>`
               )
               .join("")}
           </div>
-          <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+          <ul class="mt-3 space-y-1.5">
             ${labels
               .map(
                 (label: any) =>
-                  `<span class="flex items-center gap-1.5 text-[12px] text-muted"><span class="h-2 w-2 rounded-sm ${
-                    colors[labels.indexOf(label) % colors.length]
-                  }"></span>${label}</span>`
+                  `<li class="flex items-center gap-2 text-[12px] text-muted"><span class="h-2.5 w-2.5 ${phaseClass(
+                    label
+                  )}"></span>${label}</li>`
               )
               .join("")}
-          </div>`;
+          </ul>`;
       } else {
         phases.innerHTML = "";
       }
@@ -228,8 +211,8 @@ const maxSeconds = 45;
       document.getElementById("done-events")!.innerHTML = s.events
         .map(
           (e: any) => `
-          <div class="flex gap-3 rounded-lg border border-line bg-panel/50 px-4 py-3">
-            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-dropped"></span>
+          <div class="flex gap-3 border border-line px-4 py-3">
+            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 bg-dropped"></span>
             <div>
               <p class="text-[13px] font-medium text-ink">${e.label}
                 <span class="ml-1 font-mono text-[12px] font-normal text-muted">${e.start_sec}s – ${e.end_sec}s</span>
@@ -243,7 +226,7 @@ const maxSeconds = 45;
       document.getElementById("done-notes")!.innerHTML = s.notes
         .map(
           (note: string) =>
-            `<p class="rounded-lg border border-line/60 bg-panel/40 px-4 py-2.5 text-[13px] leading-relaxed text-muted">${note}</p>`
+            `<p class="border border-line bg-paper px-4 py-2.5 text-[13px] leading-relaxed text-muted">${note}</p>`
         )
         .join("");
 
@@ -331,13 +314,13 @@ const maxSeconds = 45;
     for (const type of ["dragenter", "dragover"]) {
       dropzone.addEventListener(type, (event) => {
         event.preventDefault();
-        dropzone.classList.add("border-accent/60", "bg-accent/5");
+        dropzone.classList.add("border-accent");
       });
     }
     for (const type of ["dragleave", "drop"]) {
       dropzone.addEventListener(type, (event) => {
         event.preventDefault();
-        dropzone.classList.remove("border-accent/60", "bg-accent/5");
+        dropzone.classList.remove("border-accent");
       });
     }
     dropzone.addEventListener("drop", (event) => {

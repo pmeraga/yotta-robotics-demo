@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 48" fill="none" aria-label="Yotta">
+  <path d="M4 36V8h10.5l9.4 21.2L33.3 8H44v28h-8.1V18.4L26.5 36h-7.1L10.1 18.4V36H4z" fill="#14161c"/>
+  <rect x="52" y="8" width="5" height="28" fill="#1d4ed8"/>
+  <text x="68" y="33" font-family="IBM Plex Sans, Helvetica, Arial, sans-serif" font-size="28" font-weight="600" letter-spacing="-0.02em" fill="#14161c">YOTTA</text>
+</svg>

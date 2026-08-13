@@ -1,7 +1,10 @@
 ---
 import { asset } from "../lib/url";
+
 interface Phase {
   label: string;
+  start_sec: number;
+  end_sec: number;
   frames: number;
   kept_frames: number;
 }
@@ -10,6 +13,7 @@ interface Episode {
   index: number;
   total_frames: number;
   kept_frames: number;
+  dropped_frames: number;
   percent_reduced: number;
   duration_sec: number;
   kept_duration_sec: number;
@@ -18,6 +22,8 @@ interface Episode {
   idle_tail_frames: number;
   phases: Phase[];
   findings: string[];
+  source_bytes: number;
+  curated_bytes: number;
 }
 
 interface Props {
@@ -26,35 +32,27 @@ interface Props {
 
 const { episode } = Astro.props;
 
-const palette = [
-  "bg-sky-400",
-  "bg-amber-500",
-  "bg-emerald-500",
-  "bg-violet-400",
-  "bg-pink-400",
-  "bg-slate-500",
-];
+const phaseClass = (label: string) => {
+  const l = label.toLowerCase();
+  if (l.includes("idle")) return "bg-idle";
+  if (l.includes("success")) return "bg-success";
+  if (l.includes("recovery") || l.includes("drop") || l.includes("miss")) return "bg-recovery";
+  return "bg-attempt";
+};
 
-const uniqueLabels = [...new Set(episode.phases.map((p) => p.label))];
-const colorFor = (label: string) => palette[uniqueLabels.indexOf(label) % palette.length];
+const mb = (n: number) => (n / (1024 * 1024)).toFixed(1);
 ---
 
-<article class="overflow-hidden rounded-2xl border border-line bg-surface/40">
-  <div class="border-b border-line/70 px-5 py-4">
-    <div class="flex flex-wrap items-baseline justify-between gap-3">
-      <h3 class="text-base font-semibold text-ink">Episode {episode.index}</h3>
-      <span class="rounded-full bg-kept/15 px-2.5 py-0.5 text-xs font-medium text-kept">
-        {episode.percent_reduced}% removed
-      </span>
-    </div>
-    <p class="mt-1 text-[13px] text-muted">
-      {episode.total_frames} frames → {episode.kept_frames} kept ·{" "}
-      {episode.duration_sec}s → {episode.kept_duration_sec}s
+<article class="border border-line bg-panel">
+  <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-line px-4 py-3">
+    <h3 class="text-[15px] font-semibold text-ink">Episode {episode.index}</h3>
+    <p class="font-mono text-[12px] text-muted">
+      {episode.total_frames}f → {episode.kept_frames}f · −{episode.percent_reduced}% · {episode.duration_sec}s → {episode.kept_duration_sec}s
     </p>
   </div>
 
   <video
-    class="aspect-video w-full bg-black"
+    class="aspect-video w-full bg-ink"
     src={asset(`/assets/video/annotated_ep${episode.index}.mp4`)}
     controls
     muted
@@ -62,43 +60,61 @@ const colorFor = (label: string) => palette[uniqueLabels.indexOf(label) % palett
     playsinline
     preload="metadata"></video>
 
-  <div class="px-5 py-4">
-    <div class="flex h-2 w-full overflow-hidden rounded-full bg-panel">
+  <div class="border-b border-line px-4 py-3">
+    <p class="mb-2 font-mono text-[11px] uppercase tracking-wide text-muted">Phase timeline</p>
+    <div class="phase-bar" role="img" aria-label="Episode phase composition">
       {
         episode.phases.map((phase) => (
-          <div
-            class={colorFor(phase.label)}
+          <span
+            class={phaseClass(phase.label)}
             style={`width:${(phase.frames / episode.total_frames) * 100}%`}
-            title={`${phase.label}: ${phase.frames} frames, ${phase.kept_frames} kept`}
+            title={`${phase.label}: ${phase.start_sec}s–${phase.end_sec}s · ${phase.frames} frames · ${phase.kept_frames} kept`}
           />
         ))
       }
     </div>
-
-    <dl class="mt-4 grid grid-cols-3 gap-3 text-center">
-      <div class="rounded-lg bg-panel/60 py-2">
-        <dt class="text-[11px] uppercase tracking-wide text-muted">Attempts</dt>
-        <dd class="text-lg font-semibold text-ink">{episode.attempts}</dd>
-      </div>
-      <div class="rounded-lg bg-panel/60 py-2">
-        <dt class="text-[11px] uppercase tracking-wide text-muted">Recoveries</dt>
-        <dd class="text-lg font-semibold text-ink">{episode.recoveries}</dd>
-      </div>
-      <div class="rounded-lg bg-panel/60 py-2">
-        <dt class="text-[11px] uppercase tracking-wide text-muted">Idle tail</dt>
-        <dd class="text-lg font-semibold text-ink">{episode.idle_tail_frames}f</dd>
-      </div>
-    </dl>
-
-    <ul class="mt-4 space-y-2">
+    <ul class="mt-3 space-y-1.5">
       {
-        episode.findings.map((finding) => (
-          <li class="flex gap-2 text-[13px] leading-snug text-muted">
-            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-dropped" />
-            <span>{finding}</span>
+        episode.phases.map((phase) => (
+          <li class="flex gap-2 text-[12px] text-muted">
+            <span class={`mt-1 h-2.5 w-2.5 shrink-0 ${phaseClass(phase.label)}`} />
+            <span>
+              <span class="text-ink">{phase.label}</span>
+              <span class="font-mono"> · {phase.start_sec.toFixed(2)}–{phase.end_sec.toFixed(2)}s · {phase.frames}f · kept {phase.kept_frames}</span>
+            </span>
           </li>
         ))
       }
     </ul>
   </div>
+
+  <div class="grid grid-cols-4 divide-x divide-line border-b border-line text-center">
+    <div class="px-2 py-2.5">
+      <p class="font-mono text-[11px] uppercase text-muted">Att</p>
+      <p class="font-mono text-lg font-medium text-ink">{episode.attempts}</p>
+    </div>
+    <div class="px-2 py-2.5">
+      <p class="font-mono text-[11px] uppercase text-muted">Rec</p>
+      <p class="font-mono text-lg font-medium text-ink">{episode.recoveries}</p>
+    </div>
+    <div class="px-2 py-2.5">
+      <p class="font-mono text-[11px] uppercase text-muted">Idle</p>
+      <p class="font-mono text-lg font-medium text-ink">{episode.idle_tail_frames}</p>
+    </div>
+    <div class="px-2 py-2.5">
+      <p class="font-mono text-[11px] uppercase text-muted">MB</p>
+      <p class="font-mono text-lg font-medium text-ink">{mb(episode.source_bytes)}→{mb(episode.curated_bytes)}</p>
+    </div>
+  </div>
+
+  <ul class="space-y-2 px-4 py-3">
+    {
+      episode.findings.map((finding) => (
+        <li class="flex gap-2 text-[13px] leading-snug text-muted">
+          <span class="mt-1.5 h-1.5 w-1.5 shrink-0 bg-dropped" />
+          <span>{finding}</span>
+        </li>
+      ))
+    }
+  </ul>
 </article>
