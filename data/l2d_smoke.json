@@ -1,0 +1,173 @@
+{
+  "dataset": "yaak-ai/L2D",
+  "revision": "R0",
+  "episode_index": 0,
+  "camera": "observation.images.front_left",
+  "fps": 10,
+  "policy": "success_only",
+  "total_frames": 150,
+  "kept_frames": 33,
+  "dropped_frames": 117,
+  "percent_reduced": 78.0,
+  "outcome": {
+    "episode_index": 0,
+    "frames": 150,
+    "gripper_transitions": 10,
+    "extra_regrasps": 10,
+    "backtracks": 6,
+    "estimated_attempts": 7,
+    "success_from_frame": 149,
+    "settle_buffer_frames": 0,
+    "clean_run": false,
+    "peak_progress": 1.0,
+    "final_progress": 0.9377,
+    "progress_informative": true,
+    "outcome": "recovery"
+  },
+  "task": "Drive straight up to the yield sign and take first exit from the roundabout",
+  "videos": {
+    "annotated": "assets/video/l2d_r0_ep0_annotated.mp4",
+    "curated": "assets/video/l2d_r0_ep0_curated.mp4",
+    "source": "assets/video/l2d_r0_ep0_source.mp4"
+  },
+  "episode_label": {
+    "episode_index": 0,
+    "label": "recovery",
+    "reason": "mid_episode_failure_then_success",
+    "backtracks": 6,
+    "extra_regrasps": 10,
+    "estimated_attempts": 7,
+    "clean_run": false
+  },
+  "phases": [
+    {
+      "episode_index": 0,
+      "start_frame": 0,
+      "end_frame": 4,
+      "phase": "attempt_1",
+      "label": "attempt_1_approach_pick_place",
+      "event_types": [],
+      "episode_outcome": "recovery"
+    },
+    {
+      "episode_index": 0,
+      "start_frame": 5,
+      "end_frame": 7,
+      "phase": "recovery_backtrack",
+      "label": "recovery_after_drop_or_miss",
+      "event_types": [
+        "progress_regression"
+      ],
+      "episode_outcome": "recovery"
+    },
+    {
+      "episode_index": 0,
+      "start_frame": 8,
+      "end_frame": 24,
+      "phase": "attempt_2",
+      "label": "attempt_2_approach_pick_place",
+      "event_types": [],
+      "episode_outcome": "recovery"
+    },
+    {
+      "episode_index": 0,
+      "start_frame": 25,
+      "end_frame": 29,
+      "phase": "recovery_backtrack",
+      "label": "recovery_after_drop_or_miss",
+      "event_types": [
+        "progress_regression"
+      ],
+      "episode_outcome": "recovery"
+    },
+    {
+      "episode_index": 0,
+      "start_frame": 30,
+      "end_frame": 38,
+      "phase": "attempt_3",
+      "label": "attempt_3_approach_pick_place",
+      "event_types": [],
+      "episode_outcome": "recovery"
+    },
+    {
+      "episode_index": 0,
+      "start_frame": 39,
+      "end_frame": 43,
+      "phase": "recovery_backtrack",
+      "label": "recovery_after_drop_or_miss",
+      "event_types": [
+        "progress_regression"
+      ],
+      "episode_outcome": "recovery"
+    },
+    {
+      "episode_index": 0,
+      "start_frame": 44,
+      "end_frame": 70,
+      "phase": "attempt_4",
+      "label": "attempt_4_approach_pick_place",
+      "event_types": [],
+      "episode_outcome": "recovery"
+    },
+    {
+      "episode_index": 0,
+      "start_frame": 71,
+      "end_frame": 75,
+      "phase": "recovery_backtrack",
+      "label": "recovery_after_drop_or_miss",
+      "event_types": [
+        "progress_regression"
+      ],
+      "episode_outcome": "recovery"
+    },
+    {
+      "episode_index": 0,
+      "start_frame": 76,
+      "end_frame": 79,
+      "phase": "attempt_5",
+      "label": "attempt_5_approach_pick_place",
+      "event_types": [],
+      "episode_outcome": "recovery"
+    },
+    {
+      "episode_index": 0,
+      "start_frame": 80,
+      "end_frame": 111,
+      "phase": "recovery_backtrack",
+      "label": "recovery_after_drop_or_miss",
+      "event_types": [
+        "progress_regression"
+      ],
+      "episode_outcome": "recovery"
+    },
+    {
+      "episode_index": 0,
+      "start_frame": 112,
+      "end_frame": 112,
+      "phase": "attempt_6",
+      "label": "attempt_6_approach_pick_place",
+      "event_types": [],
+      "episode_outcome": "recovery"
+    },
+    {
+      "episode_index": 0,
+      "start_frame": 113,
+      "end_frame": 116,
+      "phase": "recovery_backtrack",
+      "label": "recovery_after_drop_or_miss",
+      "event_types": [
+        "progress_regression"
+      ],
+      "episode_outcome": "recovery"
+    },
+    {
+      "episode_index": 0,
+      "start_frame": 117,
+      "end_frame": 148,
+      "phase": "attempt_7_success",
+      "label": "successful_pick_and_place",
+      "event_types": [],
+      "episode_outcome": "recovery"
+    }
+  ]
+}

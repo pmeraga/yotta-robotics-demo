@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" aria-label="Yotta">
   <rect width="64" height="64" fill="#14161c"/>
-  <path d="M12 44V20h8.2l7.4 16.8L35 20H43v24h-6.4V30.2L29.8 44h-5.6L17.4 30.2V44H12z" fill="#eceef1"/>
-  <rect x="48" y="20" width="4" height="24" fill="#1d4ed8"/>
+  <path d="M14 14h10.5L32 33.5 39.5 14H50L36.2 38.2V50h-8.4V38.2L14 14z" fill="#eceef1"/>
+  <rect x="48" y="14" width="4" height="36" fill="#1d4ed8"/>
 </svg>

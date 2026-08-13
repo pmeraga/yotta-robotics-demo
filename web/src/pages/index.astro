@@ -7,6 +7,7 @@ import EpisodeCard from "../components/EpisodeCard.astro";
 import UploadPanel from "../components/UploadPanel.astro";
 import stats from "../../../data/stats.json";
 import datasets from "../../../data/datasets.json";
+import l2d from "../../../data/l2d_smoke.json";
 
 const { dataset, episodes, totals, throughput } = stats;
 const headline = totals.policies.include_recovery;
@@ -278,8 +279,70 @@ const fitLabel: Record<string, string> = {
   </Section>
 
   <Section
+    id="l2d"
+    eyebrow="04 — AV smoke · L2D R0"
+    title="Same pipeline on open driving data"
+    lede={`yaak-ai/L2D @ ${l2d.revision}, episode ${l2d.episode_index}, ${l2d.camera}. Task: “${l2d.task}”. Event detection labelled the run ${l2d.episode_label.label}; success_only curation kept ${l2d.kept_frames}/${l2d.total_frames} frames (−${l2d.percent_reduced}%).`}
+  >
+    <div class="mb-6 grid grid-cols-2 gap-px bg-line sm:grid-cols-4">
+      <div class="bg-paper p-1">
+        <Stat value={String(l2d.episode_label.backtracks)} label="Progress backtracks" tone="warn" />
+      </div>
+      <div class="bg-paper p-1">
+        <Stat value={String(l2d.episode_label.estimated_attempts)} label="Estimated attempts" />
+      </div>
+      <div class="bg-paper p-1">
+        <Stat value={`${l2d.percent_reduced}%`} label="Frames removed (success_only)" tone="kept" />
+      </div>
+      <div class="bg-paper p-1">
+        <Stat value={`${l2d.kept_frames}/${l2d.total_frames}`} label="Frames kept" tone="accent" />
+      </div>
+    </div>
+
+    <div class="grid gap-4 lg:grid-cols-2">
+      <figure class="border border-line bg-panel">
+        <video
+          class="aspect-video w-full bg-ink"
+          src={asset("/assets/video/l2d_r0_ep0_annotated.mp4")}
+          controls
+          muted
+          loop
+          playsinline
+          preload="metadata"
+        ></video>
+        <figcaption class="border-t border-line px-4 py-2 font-mono text-[11px] text-muted">
+          annotated · keep/drop overlay · {l2d.percent_reduced}% removed
+        </figcaption>
+      </figure>
+      <figure class="border border-line bg-panel">
+        <video
+          class="aspect-video w-full bg-ink"
+          src={asset("/assets/video/l2d_r0_ep0_curated.mp4")}
+          controls
+          muted
+          loop
+          playsinline
+          preload="metadata"
+        ></video>
+        <figcaption class="border-t border-line px-4 py-2 font-mono text-[11px] text-muted">
+          curated · survivors only · {l2d.kept_frames} frames @ {l2d.fps} fps
+        </figcaption>
+      </figure>
+    </div>
+
+    <p class="mt-4 text-[13px] text-muted">
+      Reproduce locally with{" "}
+      <code class="font-mono text-[12px] text-ink">python scripts/smoke_l2d.py</code> in yotta-core
+      (selective R0 download). Full archive:{" "}
+      <a class="text-accent underline-offset-2 hover:underline" href="https://huggingface.co/datasets/yaak-ai/L2D"
+        >yaak-ai/L2D</a
+      >.
+    </p>
+  </Section>
+
+  <Section
     id="datasets"
-    eyebrow="04 — Open datasets"
+    eyebrow="05 — Open datasets"
     title="Where to point the pipeline next"
     lede="Manipulation demo is shipped. For autonomous driving, start with LeRobot-native L2D — then convert comma2k19 / nuScenes if you need more diversity."
   >
@@ -338,7 +401,7 @@ const fitLabel: Record<string, string> = {
 
   <Section
     id="try"
-    eyebrow="05 — Live demo"
+    eyebrow="06 — Live demo"
     title="Run the pipeline on your own clip"
     lede="Upload a short robot episode. You get failure/recovery detection, proposed phase labels, lighting/freeze QA, and a curated cut. Uploads and results are deleted about an hour after processing."
   >
@@ -346,7 +409,7 @@ const fitLabel: Record<string, string> = {
   </Section>
 
   <Section
-    eyebrow="06 — Pipeline"
+    eyebrow="07 — Pipeline"
     title="Nine stages, adoptable one at a time"
     lede="Each stage writes a sidecar next to the untouched recording — adopt one gate without buying the whole stack."
   >
