@@ -1,5 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" aria-label="Yotta">
+  <!-- Quiet geometric Y (YC-like proportions), our colors -->
   <rect width="64" height="64" fill="#14161c"/>
-  <path d="M14 14h10.5L32 33.5 39.5 14H50L36.2 38.2V50h-8.4V38.2L14 14z" fill="#eceef1"/>
-  <rect x="48" y="14" width="4" height="36" fill="#1d4ed8"/>
+  <path
+    fill="#eceef1"
+    d="M39.79 15.2h6.72L34.81 33.06V49.24h-5.62V33.06L17.49 15.2h6.72L32 27.09 39.79 15.2z"
+  />
 </svg>

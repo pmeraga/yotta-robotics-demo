@@ -1,5 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 48" fill="none" aria-label="Yotta">
-  <path d="M4 6h14L32 30.5 46 6h14L37.5 36.5V42H26.5V36.5L4 6z" fill="#14161c"/>
-  <rect x="64" y="6" width="5" height="36" fill="#1d4ed8"/>
-  <text x="80" y="35" font-family="IBM Plex Sans, Helvetica, Arial, sans-serif" font-size="28" font-weight="600" letter-spacing="-0.02em" fill="#14161c">YOTTA</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" fill="none" aria-label="Yotta">
+  <rect width="40" height="40" y="4" fill="#14161c"/>
+  <path
+    fill="#eceef1"
+    d="M24.87 13.25h4.2L21.76 24.41V34.53h-3.52V24.41L11.93 13.25h4.2L20 20.68l4.87-7.43z"
+  />
+  <text
+    x="52"
+    y="33"
+    font-family="IBM Plex Sans, Helvetica Neue, Arial, sans-serif"
+    font-size="26"
+    font-weight="600"
+    letter-spacing="-0.03em"
+    fill="#14161c"
+  >YOTTA</text>
 </svg>
